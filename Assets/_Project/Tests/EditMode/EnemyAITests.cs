@@ -431,7 +431,7 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
-        public void CleanupSceneEntities_RemovesAllEntityGameObjectsFromScene()
+        public void TearDown_EnsuresNoEntityLeaksBetweenTests()
         {
             // Arrange
             new GameObject("Player").AddComponent<Entity>();
