@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CorgiCommando.Camera
@@ -25,12 +26,18 @@ namespace CorgiCommando.Camera
         /// <summary>Fired when arena lock is released.</summary>
         public event Action OnArenaUnlocked;
 
+        private readonly List<Transform> _targets = new List<Transform>();
+        // TODO: wire _arenaMinX/_arenaMaxX into CinemachineConfiner2D bounds when Cinemachine is integrated
+        private float _arenaMinX;
+        private float _arenaMaxX;
+
         /// <summary>
         /// Adds a player transform to the target group.
         /// </summary>
         public void AddTarget(Transform target, float weight = 1f)
         {
-            throw new NotImplementedException();
+            if (target != null && !_targets.Contains(target))
+                _targets.Add(target);
         }
 
         /// <summary>
@@ -38,7 +45,7 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void RemoveTarget(Transform target)
         {
-            throw new NotImplementedException();
+            _targets.Remove(target);
         }
 
         /// <summary>
@@ -47,7 +54,10 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void LockToArena(float minX, float maxX)
         {
-            throw new NotImplementedException();
+            _arenaMinX = minX;
+            _arenaMaxX = maxX;
+            IsArenaLocked = true;
+            OnArenaLocked?.Invoke();
         }
 
         /// <summary>
@@ -55,7 +65,8 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void UnlockArena()
         {
-            throw new NotImplementedException();
+            IsArenaLocked = false;
+            OnArenaUnlocked?.Invoke();
         }
 
         /// <summary>
@@ -63,7 +74,23 @@ namespace CorgiCommando.Camera
         /// </summary>
         public float GetPlayerDistance()
         {
-            throw new NotImplementedException();
+            if (_targets.Count < 2) return 0f;
+
+            float minX = float.MaxValue;
+            float maxX = float.MinValue;
+            foreach (var t in _targets)
+            {
+                if (t == null) continue;
+                if (t.position.x < minX) minX = t.position.x;
+                if (t.position.x > maxX) maxX = t.position.x;
+            }
+            return maxX - minX;
+        }
+
+        private void Update()
+        {
+            if (_targets.Count >= 2 && GetPlayerDistance() > MaxPlayerDistance)
+                OnDistanceCapReached?.Invoke();
         }
     }
 }
