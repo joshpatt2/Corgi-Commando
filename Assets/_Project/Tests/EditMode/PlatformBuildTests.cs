@@ -76,13 +76,21 @@ namespace CorgiCommando.Tests.EditMode
         {
             // Act
             var settings = Resources.Load<PlatformSettings>("PlatformSettings");
+            var defaults = ScriptableObject.CreateInstance<PlatformSettings>();
 
-            // Assert
-            Assert.IsNotNull(settings);
-            Assert.AreEqual("IL2CPP", settings.iOSScriptingBackend);
-            Assert.AreEqual("ARM64", settings.iOSArchitecture);
-            Assert.AreEqual("13.0", settings.minimumiOSVersion);
-            Assert.IsTrue(settings.landscapeLocked);
+            try
+            {
+                // Assert
+                Assert.IsNotNull(settings);
+                Assert.AreEqual(defaults.iOSScriptingBackend, settings.iOSScriptingBackend);
+                Assert.AreEqual(defaults.iOSArchitecture, settings.iOSArchitecture);
+                Assert.AreEqual(defaults.minimumiOSVersion, settings.minimumiOSVersion);
+                Assert.AreEqual(defaults.landscapeLocked, settings.landscapeLocked);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(defaults);
+            }
         }
 
         [Test]

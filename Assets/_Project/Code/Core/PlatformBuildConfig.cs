@@ -9,6 +9,10 @@ namespace CorgiCommando.Core
     /// </summary>
     public static class PlatformBuildConfig
     {
+        private const string RequiredIOSBackend = "IL2CPP";
+        private const string RequiredIOSArchitecture = "ARM64";
+        private const string RequiredMinimumIOSVersion = "13.0";
+
         /// <summary>
         /// Validates runtime platform requirements and required PlatformSettings values.
         /// Checks platform support, optional landscape lock, safe area validity, and iOS required settings.
@@ -40,9 +44,9 @@ namespace CorgiCommando.Core
 
             if (IsIOS())
             {
-                return settings.iOSScriptingBackend == "IL2CPP"
-                    && settings.iOSArchitecture == "ARM64"
-                    && settings.minimumiOSVersion == "13.0";
+                return settings.iOSScriptingBackend == RequiredIOSBackend
+                    && settings.iOSArchitecture == RequiredIOSArchitecture
+                    && settings.minimumiOSVersion == RequiredMinimumIOSVersion;
             }
 
             return true;
