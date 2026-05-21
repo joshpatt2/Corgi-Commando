@@ -279,6 +279,7 @@ namespace CorgiCommando.Player
                 return;
             }
 
+            // Combo follow-up is valid during recovery + explicit combo-window frames.
             _comboWindowRemainingFrames = Mathf.Max(0f, currentAttack.recoveryFrames + currentAttack.comboWindowFrames);
         }
 
@@ -290,8 +291,9 @@ namespace CorgiCommando.Player
                 return;
             }
 
-            float requiredMeter = Mathf.Max(CharacterData.maxSpecialMeter, CharacterData.specialCost);
-            IsSpecialReady = SpecialMeter >= requiredMeter;
+            // Per player-controller contract, specials require a full meter and the configured move cost.
+            IsSpecialReady = SpecialMeter >= CharacterData.maxSpecialMeter &&
+                             SpecialMeter >= CharacterData.specialCost;
         }
     }
 }
