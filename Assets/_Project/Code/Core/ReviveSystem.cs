@@ -32,7 +32,20 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(Vector3 alivePlayerPosition, Vector3 downedPlayerPosition, float deltaTime)
         {
-            throw new NotImplementedException();
+            if (Vector3.Distance(alivePlayerPosition, downedPlayerPosition) > ReviveRange)
+            {
+                IsReviving = false;
+                return;
+            }
+
+            IsReviving = true;
+            ReviveProgress += Mathf.Max(0f, deltaTime);
+
+            if (ReviveProgress >= ReviveTime)
+            {
+                OnReviveComplete?.Invoke(0);
+                Reset();
+            }
         }
 
         /// <summary>
@@ -40,7 +53,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public void Reset()
         {
-            throw new NotImplementedException();
+            ReviveProgress = 0f;
+            IsReviving = false;
         }
     }
 }

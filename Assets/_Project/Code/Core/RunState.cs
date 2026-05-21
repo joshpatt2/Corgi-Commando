@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -11,6 +12,8 @@ namespace CorgiCommando.Core
     [CreateAssetMenu(fileName = "RunState", menuName = "CorgiCommando/RunState")]
     public class RunState : ScriptableObject
     {
+        private readonly HashSet<int> _deadPlayers = new HashSet<int>();
+
         /// <summary>Total shared lives remaining.</summary>
         public int LivesRemaining { get; private set; }
 
@@ -37,7 +40,10 @@ namespace CorgiCommando.Core
         /// </summary>
         public void InitializeRun(int startingLives, int playerCount)
         {
-            throw new NotImplementedException();
+            LivesRemaining = Mathf.Max(0, startingLives);
+            TreatsCollected = 0;
+            ActivePlayerCount = Mathf.Max(1, playerCount);
+            _deadPlayers.Clear();
         }
 
         /// <summary>
@@ -45,7 +51,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public void AddTreats(int amount)
         {
-            throw new NotImplementedException();
+            TreatsCollected += amount;
+            OnTreatsChanged?.Invoke(TreatsCollected);
         }
 
         /// <summary>
@@ -53,7 +60,14 @@ namespace CorgiCommando.Core
         /// </summary>
         public bool ConsumeLife()
         {
-            throw new NotImplementedException();
+            if (LivesRemaining <= 0)
+            {
+                return false;
+            }
+
+            LivesRemaining--;
+            OnLivesChanged?.Invoke(LivesRemaining);
+            return true;
         }
 
         /// <summary>
@@ -61,7 +75,12 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnPlayerDied(int playerIndex)
         {
-            throw new NotImplementedException();
+            _deadPlayers.Add(playerIndex);
+
+            if (_deadPlayers.Count >= ActivePlayerCount && LivesRemaining <= 0)
+            {
+                OnGameOver?.Invoke();
+            }
         }
 
         /// <summary>
@@ -69,7 +88,9 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnPlayerDropIn(int playerIndex)
         {
-            throw new NotImplementedException();
+            ActivePlayerCount = Mathf.Max(ActivePlayerCount, playerIndex + 1);
+            ConsumeLife();
+            OnPlayerJoined?.Invoke(playerIndex);
         }
     }
 }
