@@ -431,19 +431,38 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
-        public void TearDown_RemovesAllEntityGameObjectsFromScene()
+        public void CleanupSceneEntities_RemovesAllEntityGameObjectsFromScene()
         {
             // Arrange
-            new GameObject("Player").AddComponent<Entity>();
-            new GameObject("Enemy").AddComponent<Entity>();
+            var playerGo = new GameObject("Player");
+            playerGo.AddComponent<Entity>();
+            var enemyGo = new GameObject("Enemy");
+            enemyGo.AddComponent<Entity>();
 
-            Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>().Length, Is.EqualTo(2));
+            try
+            {
+                Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>().Length, Is.EqualTo(2));
 
-            // Act
-            CleanupSceneEntities();
+                // Act
+                CleanupSceneEntities();
 
-            // Assert
-            Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>(), Is.Empty);
+                // Assert
+                Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>(), Is.Empty);
+            }
+            finally
+            {
+                if (playerGo != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(playerGo);
+                }
+
+                if (enemyGo != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(enemyGo);
+                }
+
+                CleanupSceneEntities();
+            }
         }
     }
 }
