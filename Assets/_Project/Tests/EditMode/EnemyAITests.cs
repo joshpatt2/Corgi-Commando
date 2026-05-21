@@ -446,8 +446,8 @@ namespace CorgiCommando.Tests.EditMode
 
                 // Assert
                 Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>(), Is.Empty);
-                Assert.IsTrue(playerGo == null);
-                Assert.IsTrue(enemyGo == null);
+                Assert.That(playerGo, Is.Null);
+                Assert.That(enemyGo, Is.Null);
             }
             finally
             {
