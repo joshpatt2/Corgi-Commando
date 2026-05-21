@@ -400,6 +400,30 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void SprinklerTurret_Tick_PlayerNearby_DoesNotEnterChase()
+        {
+            // Arrange
+            var turretGo = new GameObject("Turret");
+            var turret = turretGo.AddComponent<SprinklerTurretAI>();
+            turret.Initialize(_turretData);
+            turretGo.transform.position = Vector3.zero;
+
+            var playerGo = new GameObject("Player");
+            playerGo.AddComponent<Entity>();
+            playerGo.transform.position = Vector3.one;
+
+            // Act
+            turret.Tick(0.016f);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+            Assert.IsFalse(turret.IsTelegraphing);
+
+            UnityEngine.Object.DestroyImmediate(turretGo);
+            UnityEngine.Object.DestroyImmediate(playerGo);
+        }
+
+        [Test]
         public void EnemyAI_TransitionTo_FiresOnStateChangedEvent()
         {
             // Arrange

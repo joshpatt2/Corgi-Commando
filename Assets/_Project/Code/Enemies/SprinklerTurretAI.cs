@@ -21,9 +21,12 @@ namespace CorgiCommando.Enemies
 
         public override void Tick(float deltaTime)
         {
-            base.Tick(deltaTime);
+            if (deltaTime < 0f)
+            {
+                throw new System.ArgumentOutOfRangeException(nameof(deltaTime));
+            }
 
-            if (CurrentState == EnemyState.Dead)
+            if (deltaTime == 0f || CurrentState == EnemyState.Dead)
             {
                 return;
             }
