@@ -63,7 +63,7 @@ namespace CorgiCommando.Core
             }
 
             IsReviving = true;
-            ReviveProgress += deltaTime;
+            ReviveProgress += Mathf.Max(0f, deltaTime);
 
             if (ReviveProgress >= ReviveTime)
             {

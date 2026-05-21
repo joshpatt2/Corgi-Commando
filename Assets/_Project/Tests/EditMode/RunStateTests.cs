@@ -139,6 +139,7 @@ namespace CorgiCommando.Tests.EditMode
             var soloRun = ScriptableObject.CreateInstance<RunState>();
             soloRun.InitializeRun(3, 1);
 
+            Assert.Throws<ArgumentOutOfRangeException>(() => soloRun.OnPlayerDropIn(-1));
             Assert.Throws<ArgumentOutOfRangeException>(() => soloRun.OnPlayerDropIn(5));
 
             UnityEngine.Object.DestroyImmediate(soloRun);
