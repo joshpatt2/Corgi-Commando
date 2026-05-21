@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63018d8e1cfd64f72a16337b7ffe2ce2, type: 3}
+  m_Name: Sarge_Punch2
+  m_EditorClassIdentifier: 
+  attackName: Sarge Punch 2
+  startupFrames: 3
+  activeFrames: 4
+  recoveryFrames: 7
+  comboWindowFrames: 10
+  damage: 11
+  knockbackForce: {x: 3.5, y: 1.2, z: 0}
+  hitstunFrames: 9
+  causesKnockdown: 0
+  hitboxRect:
+    serializedVersion: 2
+    x: 0.55
+    y: -0.25
+    width: 1.1
+    height: 0.5
+  hitstopFrames: 4
+  screenShakeIntensity: 0.1
+  hitType: 1

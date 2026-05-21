@@ -14,6 +14,9 @@ namespace CorgiCommando.Player
     public class CorgiController : Entity
     {
         private const float FramesPerSecond = 60f;
+        [SerializeField] private CorgiData _characterData;
+        [SerializeField] private int _playerIndex;
+
         private IInputBuffer _inputBuffer;
         private KinematicMovementController _movementController;
         private float _comboWindowRemainingFrames;
@@ -41,6 +44,11 @@ namespace CorgiCommando.Player
 
         /// <summary>Fired when state changes.</summary>
         public event Action<CorgiState, CorgiState> OnStateChanged;
+
+        private void Awake()
+        {
+            TryAutoInitialize();
+        }
 
         /// <summary>
         /// Initializes the controller with character data, input buffer, and player index.
@@ -357,6 +365,30 @@ namespace CorgiCommando.Player
                    CharacterData != null &&
                    CharacterData.specialDecayRate > 0f &&
                    SpecialMeter > 0f;
+        }
+
+        private void TryAutoInitialize()
+        {
+            if (CharacterData != null || _characterData == null)
+            {
+                return;
+            }
+
+            int clampedPlayerIndex = Mathf.Clamp(_playerIndex, 0, 1);
+            IInputBuffer inputBuffer = null;
+            PlayerInputHandler inputHandler = GetComponent<PlayerInputHandler>();
+            if (inputHandler != null)
+            {
+                inputBuffer = inputHandler.Buffer;
+            }
+
+            if (inputBuffer == null)
+            {
+                inputBuffer = new InputBuffer();
+                inputHandler?.Initialize(inputBuffer, clampedPlayerIndex);
+            }
+
+            Initialize(_characterData, inputBuffer, clampedPlayerIndex);
         }
     }
 }

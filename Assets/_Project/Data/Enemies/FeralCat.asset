@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a22fed03327a4ed88187c3b88990a41, type: 3}
+  m_Name: FeralCat
+  m_EditorClassIdentifier: 
+  enemyName: FeralCat
+  placeholderColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+  maxHP: 30
+  moveSpeed: 4
+  depthSpeed: 2.5
+  primaryAttack: {fileID: 11400000, guid: 7b3c4d5e6f708192a3b4c5d6e7f80901, type: 2}
+  aggroRange: 8
+  attackRange: 1.2
+  behaviorPreset: 0
+  baseTreatsDrop: 5
+  comboFinisherBonus: 2
