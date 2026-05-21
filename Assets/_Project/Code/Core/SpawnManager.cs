@@ -6,8 +6,13 @@ namespace CorgiCommando.Core
 {
     /// <summary>
     /// Drives wave-based encounters from WaveData ScriptableObjects.
-    /// Tracks alive enemy count to determine wave clear state.
-    /// Coordinates with ArenaCameraLock for gate management.
+    /// Currently scope: wave-state tracking only (alive count, wave clear, encounter complete).
+    /// Enemy instantiation (prefab spawning at SpawnGroup positions) is not yet implemented —
+    /// callers drive AliveEnemyCount transitions via OnEnemyDied.
+    ///
+    /// Contract: OnEncounterComplete fires exactly once, from the moment the final enemy of the
+    /// final wave dies (via ClearCurrentWave). AdvanceToNextWave never completes the encounter;
+    /// it only moves between cleared waves.
     /// </summary>
     public class SpawnManager : MonoBehaviour
     {
@@ -50,8 +55,13 @@ namespace CorgiCommando.Core
             _waveData = waveData;
             CurrentWaveIndex = 0;
             TotalWaves = _waveData.waves?.Length ?? 0;
+            IsEncounterComplete = false;
             ResetWaveState();
-            IsEncounterComplete = TotalWaves == 0;
+
+            if (TotalWaves == 0)
+            {
+                CompleteEncounter();
+            }
         }
 
         /// <summary>
@@ -116,13 +126,6 @@ namespace CorgiCommando.Core
             }
 
             CurrentWaveIndex++;
-
-            if (CurrentWaveIndex >= TotalWaves)
-            {
-                CompleteEncounter();
-                return;
-            }
-
             ResetWaveState();
         }
 
