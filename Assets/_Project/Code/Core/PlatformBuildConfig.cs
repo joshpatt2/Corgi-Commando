@@ -1,5 +1,6 @@
 using UnityEngine;
 using CorgiCommando.Data;
+using System;
 
 namespace CorgiCommando.Core
 {
@@ -12,6 +13,18 @@ namespace CorgiCommando.Core
         private const string RequiredIOSBackend = "IL2CPP";
         private const string RequiredIOSArchitecture = "ARM64";
         private const string RequiredMinimumIOSVersion = "13.0";
+
+        internal static Func<ScreenOrientation> OrientationProvider { get; private set; } = DefaultOrientationProvider;
+
+        internal static void SetOrientationProvider(Func<ScreenOrientation> orientationProvider)
+        {
+            OrientationProvider = orientationProvider ?? DefaultOrientationProvider;
+        }
+
+        internal static void ResetOrientationProvider()
+        {
+            OrientationProvider = DefaultOrientationProvider;
+        }
 
         /// <summary>
         /// Validates runtime platform requirements and required PlatformSettings values.
@@ -74,8 +87,9 @@ namespace CorgiCommando.Core
         /// </summary>
         public static bool IsLandscapeLocked()
         {
-            return Screen.orientation == ScreenOrientation.LandscapeLeft
-                || Screen.orientation == ScreenOrientation.LandscapeRight;
+            var orientation = OrientationProvider();
+            return orientation == ScreenOrientation.LandscapeLeft
+                || orientation == ScreenOrientation.LandscapeRight;
         }
 
         /// <summary>
@@ -102,6 +116,11 @@ namespace CorgiCommando.Core
             }
 
             return safeArea;
+        }
+
+        private static ScreenOrientation DefaultOrientationProvider()
+        {
+            return Screen.orientation;
         }
     }
 }
