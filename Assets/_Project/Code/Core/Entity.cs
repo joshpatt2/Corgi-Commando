@@ -11,11 +11,13 @@ namespace CorgiCommando.Core
     /// </summary>
     public class Entity : MonoBehaviour
     {
+        private readonly Dictionary<Type, IEntityComponent> _components = new Dictionary<Type, IEntityComponent>();
+
         /// <summary>Faction affiliation for targeting and friendly-fire rules.</summary>
         public Faction Faction { get; set; }
 
         /// <summary>Whether this entity is alive (not destroyed/dead).</summary>
-        public bool IsAlive { get; protected set; }
+        public bool IsAlive { get; protected set; } = true;
 
         /// <summary>Fired when this entity dies (HP reaches zero).</summary>
         public event Action<Entity> OnDeath;
@@ -25,7 +27,29 @@ namespace CorgiCommando.Core
         /// </summary>
         public void AddEntityComponent<T>(T component) where T : class, IEntityComponent
         {
-            throw new NotImplementedException();
+            if (component == null)
+            {
+                throw new ArgumentNullException(nameof(component));
+            }
+
+            var type = typeof(T);
+            if (_components.TryGetValue(type, out var existing))
+            {
+                if (existing is IHealthComponent existingHealth)
+                {
+                    existingHealth.OnDied -= RaiseDeath;
+                }
+
+                existing.OnDetach();
+            }
+
+            _components[type] = component;
+            component.OnAttach(this);
+
+            if (component is IHealthComponent health)
+            {
+                health.OnDied += RaiseDeath;
+            }
         }
 
         /// <summary>
@@ -34,7 +58,20 @@ namespace CorgiCommando.Core
         /// </summary>
         public bool RemoveEntityComponent<T>() where T : class, IEntityComponent
         {
-            throw new NotImplementedException();
+            var type = typeof(T);
+            if (!_components.TryGetValue(type, out var component))
+            {
+                return false;
+            }
+
+            if (component is IHealthComponent health)
+            {
+                health.OnDied -= RaiseDeath;
+            }
+
+            component.OnDetach();
+            _components.Remove(type);
+            return true;
         }
 
         /// <summary>
@@ -42,7 +79,7 @@ namespace CorgiCommando.Core
         /// </summary>
         public T GetEntityComponent<T>() where T : class, IEntityComponent
         {
-            throw new NotImplementedException();
+            return _components.TryGetValue(typeof(T), out var component) ? component as T : null;
         }
 
         /// <summary>
@@ -50,7 +87,7 @@ namespace CorgiCommando.Core
         /// </summary>
         public bool HasEntityComponent<T>() where T : class, IEntityComponent
         {
-            throw new NotImplementedException();
+            return _components.ContainsKey(typeof(T));
         }
 
         /// <summary>
@@ -58,7 +95,13 @@ namespace CorgiCommando.Core
         /// </summary>
         protected void RaiseDeath()
         {
-            throw new NotImplementedException();
+            if (!IsAlive)
+            {
+                return;
+            }
+
+            IsAlive = false;
+            OnDeath?.Invoke(this);
         }
     }
 }

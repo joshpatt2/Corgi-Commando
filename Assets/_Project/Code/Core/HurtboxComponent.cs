@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -17,26 +16,31 @@ namespace CorgiCommando.Core
         /// <summary>The bounding rect of the hurtbox in local space.</summary>
         public Rect Bounds { get; set; }
 
+        public HurtboxComponent()
+        {
+            IsEnabled = true;
+        }
+
         public void OnAttach(Entity owner)
         {
-            throw new NotImplementedException();
+            Owner = owner;
         }
 
         public void OnDetach()
         {
-            throw new NotImplementedException();
+            Owner = null;
         }
 
         /// <summary>Enables the hurtbox so it can receive hits.</summary>
         public void Enable()
         {
-            throw new NotImplementedException();
+            IsEnabled = true;
         }
 
         /// <summary>Disables the hurtbox (invincibility, knockdown, etc.).</summary>
         public void Disable()
         {
-            throw new NotImplementedException();
+            IsEnabled = false;
         }
     }
 }

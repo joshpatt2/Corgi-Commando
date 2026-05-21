@@ -24,27 +24,47 @@ namespace CorgiCommando.Core
 
         public void OnAttach(Entity owner)
         {
-            throw new NotImplementedException();
+            Owner = owner;
         }
 
         public void OnDetach()
         {
-            throw new NotImplementedException();
+            Owner = null;
         }
 
         public void TakeDamage(int amount)
         {
-            throw new NotImplementedException();
+            if (amount <= 0 || IsDead)
+            {
+                return;
+            }
+
+            var previousHP = CurrentHP;
+            CurrentHP = Math.Max(0, CurrentHP - amount);
+            var appliedDamage = previousHP - CurrentHP;
+            OnDamaged?.Invoke(appliedDamage);
+
+            if (CurrentHP == 0 && !IsDead)
+            {
+                IsDead = true;
+                OnDied?.Invoke();
+            }
         }
 
         public void Heal(int amount)
         {
-            throw new NotImplementedException();
+            if (amount <= 0 || IsDead)
+            {
+                return;
+            }
+
+            CurrentHP = Math.Min(MaxHP, CurrentHP + amount);
         }
 
         public void ResetToMax()
         {
-            throw new NotImplementedException();
+            CurrentHP = MaxHP;
+            IsDead = false;
         }
     }
 }
