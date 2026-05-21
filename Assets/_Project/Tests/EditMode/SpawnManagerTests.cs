@@ -137,6 +137,64 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void StartEncounter_EmptyWaves_FiresOnEncounterComplete()
+        {
+            // Arrange
+            var emptyWaveData = ScriptableObject.CreateInstance<WaveData>();
+            emptyWaveData.waves = new WaveEntry[0];
+            bool encounterDone = false;
+            _manager.OnEncounterComplete += () => encounterDone = true;
+
+            // Act
+            _manager.StartEncounter(emptyWaveData);
+
+            // Assert — empty encounter should still surface as complete via the event,
+            // not silently flip the flag (subscribers waiting on the event would hang otherwise).
+            Assert.IsTrue(_manager.IsEncounterComplete);
+            Assert.IsTrue(encounterDone);
+
+            UnityEngine.Object.DestroyImmediate(emptyWaveData);
+        }
+
+        [Test]
+        public void AdvanceToNextWave_WaveNotCleared_IsNoOp()
+        {
+            // Arrange
+            _manager.StartEncounter(_waveData);
+            _manager.SpawnCurrentWave();
+
+            // Act — advance without clearing
+            _manager.AdvanceToNextWave();
+
+            // Assert — index unchanged, still on wave 0
+            Assert.AreEqual(0, _manager.CurrentWaveIndex);
+            Assert.IsFalse(_manager.IsWaveCleared);
+        }
+
+        [Test]
+        public void OnEncounterComplete_FiresExactlyOnce_FromFinalEnemyDeath()
+        {
+            // Arrange
+            _manager.StartEncounter(_waveData);
+            int completeCount = 0;
+            _manager.OnEncounterComplete += () => completeCount++;
+
+            // Act — fully clear both waves, then redundantly call AdvanceToNextWave
+            _manager.SpawnCurrentWave();
+            _manager.OnEnemyDied();
+            _manager.OnEnemyDied();
+            _manager.OnEnemyDied();
+            _manager.AdvanceToNextWave();
+            _manager.SpawnCurrentWave();
+            _manager.OnEnemyDied();
+            _manager.OnEnemyDied();           // last enemy → encounter complete
+            _manager.AdvanceToNextWave();     // should be no-op, not a second completion
+
+            // Assert — single completion event, regardless of redundant advance calls.
+            Assert.AreEqual(1, completeCount);
+        }
+
+        [Test]
         public void AllWavesCleared_FiresEncounterCompleteEvent()
         {
             // Arrange

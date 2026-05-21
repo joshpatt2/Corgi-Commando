@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 
@@ -7,11 +6,18 @@ namespace CorgiCommando.Core
 {
     /// <summary>
     /// Drives wave-based encounters from WaveData ScriptableObjects.
-    /// Tracks alive enemy count to determine wave clear state.
-    /// Coordinates with ArenaCameraLock for gate management.
+    /// Currently scope: wave-state tracking only (alive count, wave clear, encounter complete).
+    /// Enemy instantiation (prefab spawning at SpawnGroup positions) is not yet implemented —
+    /// callers drive AliveEnemyCount transitions via OnEnemyDied.
+    ///
+    /// Contract: OnEncounterComplete fires exactly once, from the moment the final enemy of the
+    /// final wave dies (via ClearCurrentWave). AdvanceToNextWave never completes the encounter;
+    /// it only moves between cleared waves.
     /// </summary>
     public class SpawnManager : MonoBehaviour
     {
+        private WaveData _waveData;
+
         /// <summary>Current wave index (0-based).</summary>
         public int CurrentWaveIndex { get; private set; }
 
@@ -41,7 +47,21 @@ namespace CorgiCommando.Core
         /// </summary>
         public void StartEncounter(WaveData waveData)
         {
-            throw new NotImplementedException();
+            if (waveData == null)
+            {
+                throw new ArgumentNullException(nameof(waveData));
+            }
+
+            _waveData = waveData;
+            CurrentWaveIndex = 0;
+            TotalWaves = _waveData.waves?.Length ?? 0;
+            IsEncounterComplete = false;
+            ResetWaveState();
+
+            if (TotalWaves == 0)
+            {
+                CompleteEncounter();
+            }
         }
 
         /// <summary>
@@ -49,7 +69,33 @@ namespace CorgiCommando.Core
         /// </summary>
         public void SpawnCurrentWave()
         {
-            throw new NotImplementedException();
+            if (_waveData == null || IsEncounterComplete || CurrentWaveIndex < 0 || CurrentWaveIndex >= TotalWaves)
+            {
+                return;
+            }
+
+            var wave = _waveData.waves[CurrentWaveIndex];
+            ResetWaveState();
+
+            if (wave?.spawnGroups != null)
+            {
+                foreach (var spawnGroup in wave.spawnGroups)
+                {
+                    if (spawnGroup == null)
+                    {
+                        continue;
+                    }
+
+                    AliveEnemyCount += Math.Max(0, spawnGroup.count);
+                }
+            }
+
+            OnWaveStarted?.Invoke(CurrentWaveIndex);
+
+            if (AliveEnemyCount == 0)
+            {
+                ClearCurrentWave();
+            }
         }
 
         /// <summary>
@@ -57,7 +103,16 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnEnemyDied()
         {
-            throw new NotImplementedException();
+            if (_waveData == null || IsEncounterComplete || IsWaveCleared || AliveEnemyCount <= 0)
+            {
+                return;
+            }
+
+            AliveEnemyCount--;
+            if (AliveEnemyCount == 0)
+            {
+                ClearCurrentWave();
+            }
         }
 
         /// <summary>
@@ -65,7 +120,41 @@ namespace CorgiCommando.Core
         /// </summary>
         public void AdvanceToNextWave()
         {
-            throw new NotImplementedException();
+            if (_waveData == null || IsEncounterComplete || !IsWaveCleared)
+            {
+                return;
+            }
+
+            CurrentWaveIndex++;
+            ResetWaveState();
+        }
+
+        private void ClearCurrentWave()
+        {
+            IsWaveCleared = true;
+            OnWaveCleared?.Invoke(CurrentWaveIndex);
+
+            if (CurrentWaveIndex >= TotalWaves - 1)
+            {
+                CompleteEncounter();
+            }
+        }
+
+        private void CompleteEncounter()
+        {
+            if (IsEncounterComplete)
+            {
+                return;
+            }
+
+            IsEncounterComplete = true;
+            OnEncounterComplete?.Invoke();
+        }
+
+        private void ResetWaveState()
+        {
+            AliveEnemyCount = 0;
+            IsWaveCleared = false;
         }
     }
 }
