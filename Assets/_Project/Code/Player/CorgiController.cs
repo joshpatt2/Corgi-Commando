@@ -327,6 +327,7 @@ namespace CorgiCommando.Player
             // Design choice: follow-up can be buffered during recovery and through comboWindowFrames.
             // This intentionally uses a forgiving chain timing (recovery + window), even though
             // comboWindowFrames alone could also be interpreted as a strict post-recovery window.
+            // Example: recovery=10 and comboWindow=5 gives 15 total frames to enter the next attack.
             _comboWindowRemainingFrames = Mathf.Max(0f, currentAttack.recoveryFrames + currentAttack.comboWindowFrames);
         }
 
