@@ -88,8 +88,17 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnPlayerDropIn(int playerIndex)
         {
-            ActivePlayerCount = Mathf.Max(ActivePlayerCount, playerIndex + 1);
-            ConsumeLife();
+            if (playerIndex < ActivePlayerCount || ActivePlayerCount >= 2)
+            {
+                return;
+            }
+
+            if (!ConsumeLife())
+            {
+                return;
+            }
+
+            ActivePlayerCount++;
             OnPlayerJoined?.Invoke(playerIndex);
         }
     }
