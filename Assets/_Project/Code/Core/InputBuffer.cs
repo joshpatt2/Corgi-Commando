@@ -125,6 +125,7 @@ namespace CorgiCommando.Core
         {
             _latestTimestamp = float.NegativeInfinity;
             _latestMoveAxis = Vector2.zero;
+            float latestMoveTimestamp = float.NegativeInfinity;
 
             for (int i = 0; i < _bufferedInputs.Count; i++)
             {
@@ -134,8 +135,9 @@ namespace CorgiCommando.Core
                     _latestTimestamp = bufferedInput.Timestamp;
                 }
 
-                if (IsMoveAction(bufferedInput.Action))
+                if (IsMoveAction(bufferedInput.Action) && bufferedInput.Timestamp >= latestMoveTimestamp)
                 {
+                    latestMoveTimestamp = bufferedInput.Timestamp;
                     _latestMoveAxis = bufferedInput.AxisValue;
                 }
             }

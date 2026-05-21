@@ -82,7 +82,8 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            Buffer.RecordInput(InputAction.MoveRight, Time.time, value.Get<Vector2>());
+            Vector2 axis = value.Get<Vector2>();
+            Buffer.RecordInput(GetMoveAction(axis), Time.time, axis);
         }
 
         private void OnPunch()
@@ -148,6 +149,16 @@ namespace CorgiCommando.Core
             }
 
             Buffer.RecordInput(action, Time.time);
+        }
+
+        private static InputAction GetMoveAction(Vector2 axis)
+        {
+            if (Mathf.Abs(axis.x) >= Mathf.Abs(axis.y))
+            {
+                return axis.x < 0f ? InputAction.MoveLeft : InputAction.MoveRight;
+            }
+
+            return axis.y < 0f ? InputAction.MoveDown : InputAction.MoveUp;
         }
     }
 }
