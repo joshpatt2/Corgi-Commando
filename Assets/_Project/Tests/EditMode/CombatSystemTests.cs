@@ -177,5 +177,117 @@ namespace CorgiCommando.Tests.EditMode
             // Assert — meter should be > 0 after landing a hit
             Assert.Greater(_combat.GetSpecialMeter(_attacker), 0f);
         }
+
+        [Test]
+        public void ResolveAttack_MultipleTargetsInZBand_AllTakeDamage()
+        {
+            // Arrange — two enemies both at Z=0, within ±0.5 band
+            _attackerGo.transform.position = new Vector3(0f, 0f, 0f);
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+
+            var target2Go = new GameObject("Target2");
+            try
+            {
+                var target2 = target2Go.AddComponent<Entity>();
+                target2.Faction = Faction.Enemy;
+                target2Go.transform.position = new Vector3(-1f, 0f, 0f);
+                var health2 = new HealthComponent(100);
+                target2.AddEntityComponent<IHealthComponent>(health2);
+                var hurtbox2 = new HurtboxComponent();
+                target2.AddEntityComponent<HurtboxComponent>(hurtbox2);
+                target2.AddEntityComponent<KnockbackReceiver>(new KnockbackReceiver());
+
+                // Act
+                var result = _combat.ResolveAttack(_attacker, _punchData, new[] { _target, target2 });
+
+                // Assert — both enemies should have taken damage
+                Assert.IsTrue(result.DidHit);
+                Assert.AreEqual(90, _target.GetEntityComponent<IHealthComponent>().CurrentHP);
+                Assert.AreEqual(90, health2.CurrentHP);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(target2Go);
+            }
+        }
+
+        [Test]
+        public void ResolveAttack_FriendlyFire_Whiffs()
+        {
+            // Arrange — target set to same faction as attacker
+            _attackerGo.transform.position = new Vector3(0f, 0f, 0f);
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _target.Faction = Faction.Player;
+
+            // Act
+            var result = _combat.ResolveAttack(_attacker, _punchData, new[] { _target });
+
+            // Assert
+            Assert.IsFalse(result.DidHit);
+        }
+
+        [Test]
+        public void ResolveAttack_DisabledHurtbox_Whiffs()
+        {
+            // Arrange — hurtbox explicitly disabled (invincibility frames)
+            _attackerGo.transform.position = new Vector3(0f, 0f, 0f);
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _target.GetEntityComponent<HurtboxComponent>().Disable();
+
+            // Act
+            var result = _combat.ResolveAttack(_attacker, _punchData, new[] { _target });
+
+            // Assert
+            Assert.IsFalse(result.DidHit);
+        }
+
+        [Test]
+        public void Hitstop_ClearsAfterDuration()
+        {
+            // Arrange
+            _attackerGo.transform.position = new Vector3(0f, 0f, 0f);
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            bool hitstopEnded = false;
+            _combat.OnHitstopEnded += () => hitstopEnded = true;
+
+            // Act — resolve attack to start hitstop (4 frames at 60fps = 4/60f ≈ 0.067s)
+            _combat.ResolveAttack(_attacker, _punchData, new[] { _target });
+            Assert.IsTrue(_combat.IsInHitstop, "IsInHitstop should be true immediately after hit");
+
+            // Tick past hitstop duration
+            _combat.Tick(0.1f);
+
+            // Assert
+            Assert.IsFalse(_combat.IsInHitstop);
+            Assert.IsTrue(hitstopEnded);
+        }
+
+        [Test]
+        public void ConsumeSpecialMeter_HappyPath_ReturnsTrue()
+        {
+            // Arrange — land a hit so meter is at 10
+            _attackerGo.transform.position = new Vector3(0f, 0f, 0f);
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _combat.ResolveAttack(_attacker, _punchData, new[] { _target });
+
+            // Act — consume less than what's available
+            bool consumed = _combat.ConsumeSpecialMeter(_attacker, 5f);
+
+            // Assert
+            Assert.IsTrue(consumed);
+            Assert.Less(_combat.GetSpecialMeter(_attacker), 10f);
+        }
+
+        [Test]
+        public void ConsumeSpecialMeter_InsufficientMeter_ReturnsFalse()
+        {
+            // Arrange — meter starts at 0
+            // Act — attempt to consume more than available
+            bool consumed = _combat.ConsumeSpecialMeter(_attacker, 50f);
+
+            // Assert
+            Assert.IsFalse(consumed);
+            Assert.AreEqual(0f, _combat.GetSpecialMeter(_attacker));
+        }
     }
 }

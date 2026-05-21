@@ -10,6 +10,9 @@ namespace CorgiCommando.Combat
     /// Singleton combat system. Centralizes all hit resolution, hitstop, knockback,
     /// combo tracking, and special meter management.
     /// Same-Z-band hit rule: attacker and target must be within ±0.5 Z units.
+    ///
+    /// Caller contract: the game loop is responsible for not calling ResolveAttack
+    /// while IsInHitstop is true (check IsInHitstop before ticking entities).
     /// </summary>
     public class CombatSystem : ICombatSystem
     {
@@ -22,6 +25,12 @@ namespace CorgiCommando.Combat
         /// <summary>Default special meter gained per hit when no CorgiData is available.</summary>
         private const float DefaultSpecialGainPerHit = 10f;
 
+        /// <summary>
+        /// Reference frame rate used to convert hitstop frames to seconds.
+        /// Hitstop duration in seconds = hitstopFrames / TargetFrameRate.
+        /// </summary>
+        private const float TargetFrameRate = 60f;
+
         public event Action<HitResult> OnHitConnected;
         public event Action<int> OnHitstopStarted;
         public event Action OnHitstopEnded;
@@ -31,7 +40,15 @@ namespace CorgiCommando.Combat
         private readonly Dictionary<Entity, int> _comboCounts = new Dictionary<Entity, int>();
         private readonly Dictionary<Entity, float> _comboTimers = new Dictionary<Entity, float>();
         private readonly Dictionary<Entity, float> _specialMeters = new Dictionary<Entity, float>();
-        private int _hitstopFramesRemaining;
+
+        /// <summary>
+        /// Entities whose death should purge them from combat dictionaries.
+        /// Prevents unbounded growth as enemies are destroyed.
+        /// </summary>
+        private readonly HashSet<Entity> _trackedEntities = new HashSet<Entity>();
+
+        /// <summary>Remaining hitstop time in seconds (time-based, not frame-based).</summary>
+        private float _hitstopSecondsRemaining;
 
         // Reusable scratch lists to avoid per-Tick GC allocations
         private readonly List<Entity> _tickExpiredEntities = new List<Entity>();
@@ -49,11 +66,8 @@ namespace CorgiCommando.Combat
 
         public HitResult ResolveAttack(Entity attacker, AttackData attackData, Entity[] targets)
         {
-            var result = new HitResult
-            {
-                Attacker = attacker,
-                DidHit = false
-            };
+            var result = new HitResult { Attacker = attacker, DidHit = false };
+            bool firstHit = true;
 
             foreach (var target in targets)
             {
@@ -81,38 +95,47 @@ namespace CorgiCommando.Combat
                 if (knockbackReceiver != null)
                     knockbackReceiver.ApplyKnockback(attackData.knockbackForce);
 
-                // Build result
-                result.DidHit = true;
-                result.Target = target;
-                result.DamageDealt = attackData.damage;
-                result.KnockbackApplied = attackData.knockbackForce;
-                result.HitstopFrames = attackData.hitstopFrames;
-                result.HitType = attackData.hitType;
-                result.ScreenShakeIntensity = attackData.screenShakeIntensity;
-                result.HitPosition = target.transform.position;
-
-                // Start hitstop
-                if (attackData.hitstopFrames > 0)
+                // Build per-target result
+                var targetResult = new HitResult
                 {
-                    IsInHitstop = true;
-                    _hitstopFramesRemaining = attackData.hitstopFrames;
-                    OnHitstopStarted?.Invoke(attackData.hitstopFrames);
+                    DidHit = true,
+                    Attacker = attacker,
+                    Target = target,
+                    DamageDealt = attackData.damage,
+                    KnockbackApplied = attackData.knockbackForce,
+                    HitstopFrames = attackData.hitstopFrames,
+                    HitType = attackData.hitType,
+                    ScreenShakeIntensity = attackData.screenShakeIntensity,
+                    HitPosition = target.transform.position
+                };
+
+                // Track attacker for lifetime cleanup (idempotent; subscription happens once)
+                TrackEntity(attacker);
+
+                if (firstHit)
+                {
+                    // Return the first hit's data (single-target API back-compat)
+                    result = targetResult;
+                    firstHit = false;
+
+                    // Start hitstop once per attack (time-based using TargetFrameRate)
+                    if (attackData.hitstopFrames > 0)
+                    {
+                        IsInHitstop = true;
+                        _hitstopSecondsRemaining = attackData.hitstopFrames / TargetFrameRate;
+                        OnHitstopStarted?.Invoke(attackData.hitstopFrames);
+                    }
+
+                    // Increment combo once per attack call, not per enemy hit
+                    if (!_comboCounts.ContainsKey(attacker))
+                        _comboCounts[attacker] = 0;
+                    _comboCounts[attacker]++;
+                    _comboTimers[attacker] = ComboTimeoutSeconds;
                 }
 
-                // Increment combo and reset timer
-                if (!_comboCounts.ContainsKey(attacker))
-                    _comboCounts[attacker] = 0;
-                _comboCounts[attacker]++;
-                _comboTimers[attacker] = ComboTimeoutSeconds;
-
-                // Add special meter for the attacker
+                // Special meter and event fire once per valid target hit
                 AddSpecialMeter(attacker, DefaultSpecialGainPerHit);
-
-                // Fire event
-                OnHitConnected?.Invoke(result);
-
-                // Only process the first valid target
-                break;
+                OnHitConnected?.Invoke(targetResult);
             }
 
             return result;
@@ -120,12 +143,13 @@ namespace CorgiCommando.Combat
 
         public void ResetCombo(Entity attacker)
         {
-            _comboCounts[attacker] = 0;
+            _comboCounts.Remove(attacker);
             _comboTimers.Remove(attacker);
         }
 
         public void AddSpecialMeter(Entity entity, float amount)
         {
+            TrackEntity(entity);
             if (!_specialMeters.ContainsKey(entity))
                 _specialMeters[entity] = 0f;
             _specialMeters[entity] += amount;
@@ -133,6 +157,8 @@ namespace CorgiCommando.Combat
 
         public bool ConsumeSpecialMeter(Entity entity, float cost)
         {
+            if (cost < 0f)
+                return false;
             if (!_specialMeters.TryGetValue(entity, out var meter) || meter < cost)
                 return false;
             _specialMeters[entity] -= cost;
@@ -158,16 +184,35 @@ namespace CorgiCommando.Combat
             foreach (var attacker in _tickExpiredEntities)
                 ResetCombo(attacker);
 
-            // Tick hitstop countdown (frame-based; game loop calls Tick once per frame)
+            // Tick hitstop countdown (time-based: decrements by deltaTime, not by frame count)
             if (IsInHitstop)
             {
-                _hitstopFramesRemaining--;
-                if (_hitstopFramesRemaining <= 0)
+                _hitstopSecondsRemaining -= deltaTime;
+                if (_hitstopSecondsRemaining <= 0f)
                 {
                     IsInHitstop = false;
                     OnHitstopEnded?.Invoke();
                 }
             }
+        }
+
+        /// <summary>
+        /// Registers an entity for lifetime tracking so its dictionary entries are
+        /// purged when it dies, preventing unbounded growth from enemy churn.
+        /// </summary>
+        private void TrackEntity(Entity entity)
+        {
+            if (_trackedEntities.Add(entity))
+                entity.OnDeath += OnEntityDeath;
+        }
+
+        private void OnEntityDeath(Entity entity)
+        {
+            _comboCounts.Remove(entity);
+            _comboTimers.Remove(entity);
+            _specialMeters.Remove(entity);
+            _trackedEntities.Remove(entity);
+            entity.OnDeath -= OnEntityDeath;
         }
     }
 }
