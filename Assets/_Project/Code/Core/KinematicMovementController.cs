@@ -52,7 +52,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public void Jump()
         {
-            if (!CheckGrounded())
+            IsGrounded = CheckGrounded();
+            if (!IsGrounded)
             {
                 return;
             }
@@ -84,7 +85,6 @@ namespace CorgiCommando.Core
         public void Tick(float deltaTime)
         {
             var groundedAtStart = transform.position.y <= GroundPlaneY + Mathf.Epsilon;
-            IsGrounded = groundedAtStart;
 
             Velocity = new Vector3(
                 _moveInput.x * WalkSpeed * SpeedMultiplier,
@@ -104,7 +104,8 @@ namespace CorgiCommando.Core
 
             transform.position = nextPosition;
 
-            if (CheckGrounded())
+            IsGrounded = CheckGrounded();
+            if (IsGrounded)
             {
                 Velocity = new Vector3(Velocity.x, 0f, Velocity.z);
                 IsJumping = false;
@@ -116,9 +117,7 @@ namespace CorgiCommando.Core
         /// </summary>
         public bool CheckGrounded()
         {
-            var grounded = transform.position.y <= GroundPlaneY + Mathf.Epsilon;
-            IsGrounded = grounded;
-            return grounded;
+            return transform.position.y <= GroundPlaneY + Mathf.Epsilon;
         }
     }
 }
