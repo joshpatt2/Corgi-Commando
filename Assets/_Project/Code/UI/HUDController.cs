@@ -10,6 +10,7 @@ namespace CorgiCommando.UI
     public class HUDController : MonoBehaviour
     {
         private bool _isSafeAreaApplied;
+        private float _timeScaleBeforePause = 1f;
 
         /// <summary>Whether the game is currently paused.</summary>
         public bool IsPaused { get; private set; }
@@ -40,16 +41,18 @@ namespace CorgiCommando.UI
         /// </summary>
         public void TogglePause()
         {
-            IsPaused = !IsPaused;
-            Time.timeScale = IsPaused ? 0f : 1f;
-
             if (IsPaused)
             {
-                ShowPauseMenu();
+                IsPaused = false;
+                Time.timeScale = _timeScaleBeforePause;
+                HidePauseMenu();
             }
             else
             {
-                HidePauseMenu();
+                IsPaused = true;
+                _timeScaleBeforePause = Time.timeScale;
+                Time.timeScale = 0f;
+                ShowPauseMenu();
             }
 
             OnPauseStateChanged?.Invoke(IsPaused);
@@ -105,7 +108,8 @@ namespace CorgiCommando.UI
             if (IsPaused)
             {
                 IsPaused = false;
-                Time.timeScale = 1f;
+                Time.timeScale = _timeScaleBeforePause;
+                OnPauseStateChanged?.Invoke(false);
             }
         }
     }
