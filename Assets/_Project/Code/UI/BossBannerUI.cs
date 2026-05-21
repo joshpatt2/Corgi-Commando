@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace CorgiCommando.UI
@@ -20,7 +19,9 @@ namespace CorgiCommando.UI
         /// </summary>
         public void Show(string bossName, int currentHP, int maxHP)
         {
-            throw new NotImplementedException();
+            BossName = bossName ?? string.Empty;
+            IsVisible = true;
+            UpdateHP(currentHP, maxHP);
         }
 
         /// <summary>
@@ -28,7 +29,7 @@ namespace CorgiCommando.UI
         /// </summary>
         public void UpdateHP(int currentHP, int maxHP)
         {
-            throw new NotImplementedException();
+            _ = Mathf.Clamp(currentHP, 0, Mathf.Max(1, maxHP));
         }
 
         /// <summary>
@@ -36,7 +37,10 @@ namespace CorgiCommando.UI
         /// </summary>
         public void FlashPhaseChange()
         {
-            throw new NotImplementedException();
+            if (!IsVisible)
+            {
+                return;
+            }
         }
 
         /// <summary>
@@ -44,7 +48,8 @@ namespace CorgiCommando.UI
         /// </summary>
         public void Hide()
         {
-            throw new NotImplementedException();
+            IsVisible = false;
+            BossName = string.Empty;
         }
     }
 }

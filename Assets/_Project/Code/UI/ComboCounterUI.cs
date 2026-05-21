@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace CorgiCommando.UI
@@ -20,7 +19,8 @@ namespace CorgiCommando.UI
         /// </summary>
         public void SetComboCount(int count)
         {
-            throw new NotImplementedException();
+            DisplayedComboCount = Mathf.Max(0, count);
+            IsVisible = DisplayedComboCount > 0;
         }
 
         /// <summary>
@@ -28,7 +28,7 @@ namespace CorgiCommando.UI
         /// </summary>
         public void FadeOut()
         {
-            throw new NotImplementedException();
+            IsVisible = false;
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace CorgiCommando.UI
         /// </summary>
         public void Hide()
         {
-            throw new NotImplementedException();
+            IsVisible = false;
         }
     }
 }

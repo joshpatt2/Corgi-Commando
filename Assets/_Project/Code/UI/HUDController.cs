@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using CorgiCommando.Core;
 
 namespace CorgiCommando.UI
 {
@@ -10,6 +9,8 @@ namespace CorgiCommando.UI
     /// </summary>
     public class HUDController : MonoBehaviour
     {
+        private bool _isSafeAreaApplied;
+
         /// <summary>Whether the game is currently paused.</summary>
         public bool IsPaused { get; private set; }
 
@@ -21,7 +22,8 @@ namespace CorgiCommando.UI
         /// </summary>
         public void UpdateHealthBar(int playerIndex, int currentHP, int maxHP)
         {
-            throw new NotImplementedException();
+            _ = playerIndex;
+            _ = Mathf.Clamp(currentHP, 0, Mathf.Max(1, maxHP));
         }
 
         /// <summary>
@@ -29,7 +31,8 @@ namespace CorgiCommando.UI
         /// </summary>
         public void UpdateSpecialMeter(int playerIndex, float currentMeter, float maxMeter)
         {
-            throw new NotImplementedException();
+            _ = playerIndex;
+            _ = Mathf.Clamp(currentMeter, 0f, Mathf.Max(0f, maxMeter));
         }
 
         /// <summary>
@@ -37,7 +40,19 @@ namespace CorgiCommando.UI
         /// </summary>
         public void TogglePause()
         {
-            throw new NotImplementedException();
+            IsPaused = !IsPaused;
+            Time.timeScale = IsPaused ? 0f : 1f;
+
+            if (IsPaused)
+            {
+                ShowPauseMenu();
+            }
+            else
+            {
+                HidePauseMenu();
+            }
+
+            OnPauseStateChanged?.Invoke(IsPaused);
         }
 
         /// <summary>
@@ -45,7 +60,6 @@ namespace CorgiCommando.UI
         /// </summary>
         public void ShowPauseMenu()
         {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -53,7 +67,6 @@ namespace CorgiCommando.UI
         /// </summary>
         public void HidePauseMenu()
         {
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -62,7 +75,21 @@ namespace CorgiCommando.UI
         /// </summary>
         public void ApplySafeArea()
         {
-            throw new NotImplementedException();
+            var rectTransform = GetComponent<RectTransform>();
+            if (rectTransform != null && Screen.width > 0 && Screen.height > 0)
+            {
+                Rect safeArea = Screen.safeArea;
+                Vector2 anchorMin = safeArea.position;
+                Vector2 anchorMax = safeArea.position + safeArea.size;
+                anchorMin.x /= Screen.width;
+                anchorMin.y /= Screen.height;
+                anchorMax.x /= Screen.width;
+                anchorMax.y /= Screen.height;
+                rectTransform.anchorMin = anchorMin;
+                rectTransform.anchorMax = anchorMax;
+            }
+
+            _isSafeAreaApplied = true;
         }
 
         /// <summary>
@@ -70,7 +97,16 @@ namespace CorgiCommando.UI
         /// </summary>
         public bool IsSafeAreaApplied()
         {
-            throw new NotImplementedException();
+            return _isSafeAreaApplied;
+        }
+
+        private void OnDestroy()
+        {
+            if (IsPaused)
+            {
+                IsPaused = false;
+                Time.timeScale = 1f;
+            }
         }
     }
 }
