@@ -142,7 +142,12 @@ namespace CorgiCommando.Player
         /// </summary>
         public void AddSpecialMeter(float amount)
         {
-            if (CharacterData == null || amount <= 0f)
+            if (amount < 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(amount), "Special meter amount cannot be negative.");
+            }
+
+            if (CharacterData == null || amount == 0f)
             {
                 return;
             }
@@ -209,7 +214,7 @@ namespace CorgiCommando.Player
                 }
             }
 
-            if (!IsInAttackState(CurrentState) && CharacterData != null && CharacterData.specialDecayRate > 0f && SpecialMeter > 0f)
+            if (ShouldDecaySpecialMeter())
             {
                 SpecialMeter = Mathf.Max(0f, SpecialMeter - (CharacterData.specialDecayRate * deltaTime));
                 RefreshSpecialReady();
@@ -343,6 +348,14 @@ namespace CorgiCommando.Player
             return state == CorgiState.Attack1 ||
                    state == CorgiState.Attack2 ||
                    state == CorgiState.Attack3;
+        }
+
+        private bool ShouldDecaySpecialMeter()
+        {
+            return !IsInAttackState(CurrentState) &&
+                   CharacterData != null &&
+                   CharacterData.specialDecayRate > 0f &&
+                   SpecialMeter > 0f;
         }
     }
 }

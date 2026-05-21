@@ -177,6 +177,13 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void AddSpecialMeter_WithNegativeAmount_Throws()
+        {
+            // Act / Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => _player.AddSpecialMeter(-1f));
+        }
+
+        [Test]
         public void Initialize_WithInvalidPlayerIndex_Throws()
         {
             // Arrange
@@ -199,6 +206,7 @@ namespace CorgiCommando.Tests.EditMode
         {
             // Arrange
             var movement = _playerGo.AddComponent<KinematicMovementController>();
+            // Re-initialize so CorgiController can cache the movement component added by this test.
             _player.Initialize(_corgiData, _inputBuffer, 0);
             _inputBuffer.RecordInput(InputAction.MoveRight, 0f, new Vector2(1f, 0f));
 
