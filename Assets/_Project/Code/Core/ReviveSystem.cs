@@ -32,6 +32,28 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(Vector3 alivePlayerPosition, Vector3 downedPlayerPosition, float deltaTime)
         {
+            Tick(0, alivePlayerPosition, downedPlayerPosition, deltaTime);
+        }
+
+        /// <summary>
+        /// Ticks the revive system for a specific downed player.
+        /// </summary>
+        /// <param name="downedPlayerIndex">Index of the downed player being revived.</param>
+        /// <param name="alivePlayerPosition">Position of the alive player.</param>
+        /// <param name="downedPlayerPosition">Position of the downed player.</param>
+        /// <param name="deltaTime">Time step.</param>
+        public void Tick(int downedPlayerIndex, Vector3 alivePlayerPosition, Vector3 downedPlayerPosition, float deltaTime)
+        {
+            if (downedPlayerIndex < 0 || downedPlayerIndex > 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(downedPlayerIndex), "Player index must be 0 (P1) or 1 (P2).");
+            }
+
+            if (deltaTime < 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(deltaTime));
+            }
+
             if (Vector3.Distance(alivePlayerPosition, downedPlayerPosition) > ReviveRange)
             {
                 IsReviving = false;
@@ -39,11 +61,11 @@ namespace CorgiCommando.Core
             }
 
             IsReviving = true;
-            ReviveProgress += Mathf.Max(0f, deltaTime);
+            ReviveProgress += deltaTime;
 
             if (ReviveProgress >= ReviveTime)
             {
-                OnReviveComplete?.Invoke(0);
+                OnReviveComplete?.Invoke(downedPlayerIndex);
                 Reset();
             }
         }

@@ -12,6 +12,7 @@ namespace CorgiCommando.Core
     [CreateAssetMenu(fileName = "RunState", menuName = "CorgiCommando/RunState")]
     public class RunState : ScriptableObject
     {
+        private const int MaxPlayers = 2;
         private readonly HashSet<int> _deadPlayers = new HashSet<int>();
 
         /// <summary>Total shared lives remaining.</summary>
@@ -42,7 +43,7 @@ namespace CorgiCommando.Core
         {
             LivesRemaining = Mathf.Max(0, startingLives);
             TreatsCollected = 0;
-            ActivePlayerCount = Mathf.Max(1, playerCount);
+            ActivePlayerCount = Mathf.Clamp(playerCount, 1, MaxPlayers);
             _deadPlayers.Clear();
         }
 
@@ -51,6 +52,11 @@ namespace CorgiCommando.Core
         /// </summary>
         public void AddTreats(int amount)
         {
+            if (amount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(amount), "Treat amount cannot be negative.");
+            }
+
             TreatsCollected += amount;
             OnTreatsChanged?.Invoke(TreatsCollected);
         }
@@ -88,7 +94,12 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnPlayerDropIn(int playerIndex)
         {
-            if (playerIndex < ActivePlayerCount || ActivePlayerCount >= 2)
+            if (playerIndex < 0 || playerIndex >= MaxPlayers)
+            {
+                throw new ArgumentOutOfRangeException(nameof(playerIndex), "Player index must be 0 (P1) or 1 (P2).");
+            }
+
+            if (playerIndex < ActivePlayerCount || ActivePlayerCount >= MaxPlayers)
             {
                 return;
             }
