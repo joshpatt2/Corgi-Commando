@@ -224,7 +224,7 @@ namespace CorgiCommando.Enemies
                 return;
             }
 
-            Vector3 lateral = new Vector3(-toTarget.y, toTarget.x, 0f).normalized;
+            Vector3 lateral = new Vector3(-toTarget.z, 0f, toTarget.x).normalized;
             transform.position += lateral * Data.moveSpeed * deltaTime;
         }
 

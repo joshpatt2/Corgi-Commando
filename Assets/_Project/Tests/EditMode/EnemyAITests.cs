@@ -183,6 +183,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.IsTrue(reserved);
             Assert.AreEqual(1, manager.GetOccupiedSlots(target));
 
+            manager.Dispose();
             UnityEngine.Object.DestroyImmediate(targetGo);
             UnityEngine.Object.DestroyImmediate(enemyGo);
         }
@@ -213,6 +214,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.IsFalse(reserved);
             Assert.AreEqual(2, manager.GetOccupiedSlots(target));
 
+            manager.Dispose();
             UnityEngine.Object.DestroyImmediate(targetGo);
             UnityEngine.Object.DestroyImmediate(e1Go);
             UnityEngine.Object.DestroyImmediate(e2Go);
@@ -237,6 +239,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(0, manager.GetOccupiedSlots(target));
             Assert.IsTrue(manager.HasAvailableSlot(target));
 
+            manager.Dispose();
             UnityEngine.Object.DestroyImmediate(targetGo);
             UnityEngine.Object.DestroyImmediate(enemyGo);
         }
@@ -261,6 +264,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(0, manager.GetOccupiedSlots(target));
             Assert.IsFalse(enemy.HasAggroSlot);
 
+            manager.Dispose();
             UnityEngine.Object.DestroyImmediate(targetGo);
             UnityEngine.Object.DestroyImmediate(enemyGo);
         }
@@ -295,6 +299,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(EnemyState.Chase, cat.CurrentState);
             Assert.AreNotEqual(before, catGo.transform.position);
 
+            manager.Dispose();
             UnityEngine.Object.DestroyImmediate(targetGo);
             UnityEngine.Object.DestroyImmediate(slotHolderGo);
             UnityEngine.Object.DestroyImmediate(catGo);

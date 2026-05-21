@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CorgiCommando.Core;
 
@@ -8,7 +9,7 @@ namespace CorgiCommando.Enemies
     /// the number of enemies that can actively attack a single player.
     /// Enemies that can't get a slot circle at range instead.
     /// </summary>
-    public class AggroSlotManager
+    public class AggroSlotManager : IDisposable
     {
         private static readonly List<AggroSlotManager> ActiveManagers = new List<AggroSlotManager>();
         private static readonly Dictionary<EnemyAI, AggroSlotManager> ReservationOwner = new Dictionary<EnemyAI, AggroSlotManager>();
@@ -17,10 +18,7 @@ namespace CorgiCommando.Enemies
 
         public AggroSlotManager()
         {
-            if (!ActiveManagers.Contains(this))
-            {
-                ActiveManagers.Add(this);
-            }
+            ActiveManagers.Add(this);
         }
 
         /// <summary>Maximum number of attackers per player target (default 2).</summary>
@@ -145,6 +143,12 @@ namespace CorgiCommando.Enemies
             _targetByEnemy.Clear();
         }
 
+        public void Dispose()
+        {
+            ClearAll();
+            ActiveManagers.Remove(this);
+        }
+
         internal static void ReleaseSlotForEnemy(EnemyAI enemy)
         {
             if (enemy == null)
@@ -170,7 +174,7 @@ namespace CorgiCommando.Enemies
                 return owner.TryReserveSlot(enemy, target);
             }
 
-            for (int i = ActiveManagers.Count - 1; i >= 0; i--)
+            for (int i = 0; i < ActiveManagers.Count; i++)
             {
                 if (ActiveManagers[i].TryReserveSlot(enemy, target))
                 {
