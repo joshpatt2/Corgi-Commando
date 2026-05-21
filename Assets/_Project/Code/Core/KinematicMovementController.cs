@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -7,15 +6,20 @@ namespace CorgiCommando.Core
     /// Custom kinematic 2.5D movement controller.
     /// X = horizontal, Z = depth into screen, Y = jump only (gravity-driven).
     /// Does NOT use Rigidbody2D dynamics — transform.position += velocity * dt.
-    /// Grounded checks via raycast or overlap.
+    /// Grounded checks use prototype ground plane Y=0.
     /// </summary>
     public class KinematicMovementController : MonoBehaviour
     {
+        private const float GroundPlaneY = 0f;
+        private const float ExternalVelocityDecayPerSecond = 30f;
+        private Vector2 _moveInput;
+        private Vector3 _externalVelocity;
+
         /// <summary>Current velocity vector (X, Y, Z).</summary>
         public Vector3 Velocity { get; private set; }
 
         /// <summary>Whether the entity is on the ground.</summary>
-        public bool IsGrounded { get; private set; }
+        public bool IsGrounded { get; private set; } = true;
 
         /// <summary>Whether the entity is currently jumping.</summary>
         public bool IsJumping { get; private set; }
@@ -39,10 +43,10 @@ namespace CorgiCommando.Core
         /// Sets the desired movement input. Called each frame by the player controller
         /// or AI controller. X = horizontal, Y = depth (mapped to Z in world).
         /// </summary>
-        /// <param name="input">Normalized 2D input vector.</param>
+        /// <param name="input">2D input vector.</param>
         public void SetMoveInput(Vector2 input)
         {
-            throw new NotImplementedException();
+            _moveInput = input;
         }
 
         /// <summary>
@@ -50,7 +54,15 @@ namespace CorgiCommando.Core
         /// </summary>
         public void Jump()
         {
-            throw new NotImplementedException();
+            if (!CheckGrounded())
+            {
+                IsGrounded = false;
+                return;
+            }
+
+            Velocity = new Vector3(Velocity.x, JumpForce, Velocity.z);
+            IsGrounded = false;
+            IsJumping = true;
         }
 
         /// <summary>
@@ -58,7 +70,9 @@ namespace CorgiCommando.Core
         /// </summary>
         public void ApplyExternalVelocity(Vector3 velocity)
         {
-            throw new NotImplementedException();
+            _externalVelocity = velocity;
+            Velocity = velocity;
+            IsGrounded = CheckGrounded() && velocity.y <= 0f;
         }
 
         /// <summary>
@@ -68,7 +82,37 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            var groundedAtStart = IsGrounded;
+
+            Velocity = new Vector3(
+                (_moveInput.x * WalkSpeed * SpeedMultiplier) + _externalVelocity.x,
+                Velocity.y,
+                (_moveInput.y * DepthSpeed * SpeedMultiplier) + _externalVelocity.z);
+
+            if (!groundedAtStart)
+            {
+                Velocity = new Vector3(Velocity.x, Velocity.y - (Gravity * deltaTime), Velocity.z);
+            }
+
+            var nextPosition = transform.position + (Velocity * deltaTime);
+            if (nextPosition.y < GroundPlaneY)
+            {
+                nextPosition.y = GroundPlaneY;
+            }
+
+            transform.position = nextPosition;
+
+            IsGrounded = CheckGrounded();
+            if (IsGrounded)
+            {
+                Velocity = new Vector3(Velocity.x, 0f, Velocity.z);
+                IsJumping = false;
+            }
+
+            _externalVelocity = Vector3.MoveTowards(
+                _externalVelocity,
+                Vector3.zero,
+                ExternalVelocityDecayPerSecond * deltaTime);
         }
 
         /// <summary>
@@ -76,7 +120,7 @@ namespace CorgiCommando.Core
         /// </summary>
         public bool CheckGrounded()
         {
-            throw new NotImplementedException();
+            return transform.position.y <= GroundPlaneY + Mathf.Epsilon;
         }
     }
 }
