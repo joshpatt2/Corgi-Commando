@@ -51,7 +51,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public static bool IsLandscapeLocked()
         {
-            return Screen.orientation == ScreenOrientation.LandscapeLeft;
+            return Screen.orientation == ScreenOrientation.LandscapeLeft
+                || Screen.orientation == ScreenOrientation.LandscapeRight;
         }
 
         /// <summary>
