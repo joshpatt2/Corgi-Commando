@@ -56,11 +56,7 @@ namespace CorgiCommando.Tests.EditMode
             var entities = UnityEngine.Object.FindObjectsOfType<Entity>();
             for (int i = 0; i < entities.Length; i++)
             {
-                var entity = entities[i];
-                if (entity != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(entity.gameObject);
-                }
+                UnityEngine.Object.DestroyImmediate(entities[i].gameObject);
             }
         }
 
@@ -435,7 +431,7 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
-        public void EnemyAITests_CleanupSceneEntities_DestroysAllEntityGameObjects()
+        public void CleanupSceneEntities_DestroysAllEntityGameObjects()
         {
             // Arrange
             new GameObject("Player").AddComponent<Entity>();
