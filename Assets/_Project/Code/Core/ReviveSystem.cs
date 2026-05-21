@@ -9,6 +9,8 @@ namespace CorgiCommando.Core
     /// </summary>
     public class ReviveSystem
     {
+        private const int MaxPlayers = 2;
+
         /// <summary>Time in seconds required to revive a downed partner.</summary>
         public float ReviveTime { get; set; } = 3.0f;
 
@@ -44,14 +46,14 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(int downedPlayerIndex, Vector3 alivePlayerPosition, Vector3 downedPlayerPosition, float deltaTime)
         {
-            if (downedPlayerIndex < 0 || downedPlayerIndex > 1)
+            if (downedPlayerIndex < 0 || downedPlayerIndex >= MaxPlayers)
             {
                 throw new ArgumentOutOfRangeException(nameof(downedPlayerIndex), "Player index must be 0 (P1) or 1 (P2).");
             }
 
             if (deltaTime < 0f)
             {
-                throw new ArgumentOutOfRangeException(nameof(deltaTime));
+                throw new ArgumentOutOfRangeException(nameof(deltaTime), "Delta time cannot be negative.");
             }
 
             if (Vector3.Distance(alivePlayerPosition, downedPlayerPosition) > ReviveRange)
