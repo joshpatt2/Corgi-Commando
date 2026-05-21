@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63018d8e1cfd64f72a16337b7ffe2ce2, type: 3}
+  m_Name: Cat_Swipe
+  m_EditorClassIdentifier: 
+  attackName: Cat Swipe
+  startupFrames: 4
+  activeFrames: 3
+  recoveryFrames: 8
+  comboWindowFrames: 0
+  damage: 6
+  knockbackForce: {x: 2.5, y: 0.5, z: 0}
+  hitstunFrames: 6
+  causesKnockdown: 0
+  hitboxRect:
+    serializedVersion: 2
+    x: 0.4
+    y: -0.2
+    width: 0.9
+    height: 0.5
+  hitstopFrames: 3
+  screenShakeIntensity: 0.05
+  hitType: 0

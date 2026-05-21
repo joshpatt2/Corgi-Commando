@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63018d8e1cfd64f72a16337b7ffe2ce2, type: 3}
+  m_Name: Sarge_Kick
+  m_EditorClassIdentifier: 
+  attackName: Sarge Kick
+  startupFrames: 4
+  activeFrames: 5
+  recoveryFrames: 9
+  comboWindowFrames: 0
+  damage: 16
+  knockbackForce: {x: 4.5, y: 2, z: 0}
+  hitstunFrames: 12
+  causesKnockdown: 1
+  hitboxRect:
+    serializedVersion: 2
+    x: 0.7
+    y: -0.3
+    width: 1.3
+    height: 0.6
+  hitstopFrames: 5
+  screenShakeIntensity: 0.2
+  hitType: 1
