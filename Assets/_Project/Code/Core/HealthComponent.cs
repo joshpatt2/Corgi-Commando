@@ -39,8 +39,9 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            var appliedDamage = Math.Min(amount, CurrentHP);
+            var previousHP = CurrentHP;
             CurrentHP = Math.Max(0, CurrentHP - amount);
+            var appliedDamage = previousHP - CurrentHP;
             OnDamaged?.Invoke(appliedDamage);
 
             if (CurrentHP == 0 && !IsDead)
