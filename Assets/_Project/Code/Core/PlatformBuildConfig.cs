@@ -1,5 +1,5 @@
-using System;
 using UnityEngine;
+using CorgiCommando.Data;
 
 namespace CorgiCommando.Core
 {
@@ -9,14 +9,47 @@ namespace CorgiCommando.Core
     /// </summary>
     public static class PlatformBuildConfig
     {
+        private const string RequiredIOSBackend = "IL2CPP";
+        private const string RequiredIOSArchitecture = "ARM64";
+        private const string RequiredMinimumIOSVersion = "13.0";
+
         /// <summary>
-        /// Validates that the current build target's settings are correct.
-        /// Checks scripting backend, architecture, orientation, minimum OS version.
+        /// Validates runtime platform requirements and required PlatformSettings values.
+        /// Checks platform support, optional landscape lock, safe area validity, and iOS required settings.
         /// </summary>
         /// <returns>True if all settings are valid for the current target.</returns>
         public static bool ValidateCurrentTarget()
         {
-            throw new NotImplementedException();
+            if (!IsIOS() && !IsMacOS())
+            {
+                return false;
+            }
+
+            var settings = Resources.Load<PlatformSettings>("PlatformSettings");
+            if (settings == null)
+            {
+                return false;
+            }
+
+            if (settings.landscapeLocked && !IsLandscapeLocked())
+            {
+                return false;
+            }
+
+            var safeArea = GetSafeArea();
+            if (safeArea.width <= 0f || safeArea.height <= 0f)
+            {
+                return false;
+            }
+
+            if (IsIOS())
+            {
+                return settings.iOSScriptingBackend == RequiredIOSBackend
+                    && settings.iOSArchitecture == RequiredIOSArchitecture
+                    && settings.minimumiOSVersion == RequiredMinimumIOSVersion;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -24,7 +57,7 @@ namespace CorgiCommando.Core
         /// </summary>
         public static bool IsIOS()
         {
-            throw new NotImplementedException();
+            return Application.platform == RuntimePlatform.IPhonePlayer;
         }
 
         /// <summary>
@@ -32,7 +65,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public static bool IsMacOS()
         {
-            throw new NotImplementedException();
+            return Application.platform == RuntimePlatform.OSXPlayer
+                || Application.platform == RuntimePlatform.OSXEditor;
         }
 
         /// <summary>
@@ -40,7 +74,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public static bool IsLandscapeLocked()
         {
-            throw new NotImplementedException();
+            return Screen.orientation == ScreenOrientation.LandscapeLeft
+                || Screen.orientation == ScreenOrientation.LandscapeRight;
         }
 
         /// <summary>
@@ -49,7 +84,24 @@ namespace CorgiCommando.Core
         /// </summary>
         public static Rect GetSafeArea()
         {
-            throw new NotImplementedException();
+            var fallbackRect = new Rect(
+                0f,
+                0f,
+                Mathf.Max(1f, Screen.width),
+                Mathf.Max(1f, Screen.height));
+
+            if (!IsIOS())
+            {
+                return fallbackRect;
+            }
+
+            var safeArea = Screen.safeArea;
+            if (safeArea.width <= 0f || safeArea.height <= 0f)
+            {
+                return fallbackRect;
+            }
+
+            return safeArea;
         }
     }
 }
