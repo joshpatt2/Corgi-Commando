@@ -31,6 +31,7 @@ namespace CorgiCommando.Core
         [SerializeField] private GroupTargetCamera _groupTargetCamera;
 
         private readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
+        private readonly List<CorgiController> _activePlayers = new List<CorgiController>();
         private CombatSystem _combatSystem;
         private ReviveSystem _reviveSystem;
         private RunState _runState;
@@ -59,6 +60,8 @@ namespace CorgiCommando.Core
                     _groupTargetCamera.AddTarget(_playerOne.transform);
                 }
             }
+
+            CacheActivePlayers();
 
             if (_spawnManager != null)
             {
@@ -126,6 +129,7 @@ namespace CorgiCommando.Core
                 }
             }
             _activeEnemies.Clear();
+            _activePlayers.Clear();
 
             if (_runState != null)
             {
@@ -154,6 +158,21 @@ namespace CorgiCommando.Core
             }
 
             return players.Length > 0 ? players[0] : null;
+        }
+
+        private void CacheActivePlayers()
+        {
+            _activePlayers.Clear();
+
+            CorgiController[] players = FindObjectsOfType<CorgiController>();
+            for (int i = 0; i < players.Length; i++)
+            {
+                CorgiController player = players[i];
+                if (player != null && !_activePlayers.Contains(player))
+                {
+                    _activePlayers.Add(player);
+                }
+            }
         }
 
         private void RegisterEnemy(EnemyAI enemy)
@@ -196,8 +215,7 @@ namespace CorgiCommando.Core
                 return false;
             }
 
-            CorgiController[] players = FindObjectsOfType<CorgiController>();
-            if (players.Length < 2)
+            if (_activePlayers.Count < 2)
             {
                 return false;
             }
@@ -205,11 +223,12 @@ namespace CorgiCommando.Core
             CorgiController alivePlayer = null;
             CorgiController downedPlayer = null;
 
-            for (int i = 0; i < players.Length; i++)
+            for (int i = _activePlayers.Count - 1; i >= 0; i--)
             {
-                CorgiController player = players[i];
+                CorgiController player = _activePlayers[i];
                 if (player == null)
                 {
+                    _activePlayers.RemoveAt(i);
                     continue;
                 }
 

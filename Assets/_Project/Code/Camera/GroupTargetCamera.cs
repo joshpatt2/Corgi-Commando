@@ -107,9 +107,10 @@ namespace CorgiCommando.Camera
 
         public void Tick(float deltaTime)
         {
-            if (deltaTime < 0f)
+            if (deltaTime == 0f && _targets.Count < 2)
             {
-                throw new ArgumentOutOfRangeException(nameof(deltaTime), "Delta time cannot be negative.");
+                _wasOverCap = false;
+                return;
             }
 
             bool isOverCap = _targets.Count >= 2 && GetPlayerDistance() > MaxPlayerDistance;
