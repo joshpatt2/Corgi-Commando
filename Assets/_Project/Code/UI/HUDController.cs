@@ -200,6 +200,21 @@ namespace CorgiCommando.UI
             return _maxSpecial[ResolvePlayerSlot(playerIndex)];
         }
 
+        public Image GetHealthFillImage(int playerIndex)
+        {
+            return _healthFillImages[ResolvePlayerSlot(playerIndex)];
+        }
+
+        public Image GetSpecialMeterFillImage(int playerIndex)
+        {
+            return _specialFillImages[ResolvePlayerSlot(playerIndex)];
+        }
+
+        public bool HasVisualHierarchy()
+        {
+            return _visualsBuilt;
+        }
+
         private void OnDestroy()
         {
             if (IsPaused)

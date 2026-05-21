@@ -59,7 +59,7 @@ namespace CorgiCommando.UI
             {
                 if (_fadeCoroutine != null)
                 {
-                    StopCoroutine(_fadeCoroutine);
+                    return;
                 }
 
                 _fadeCoroutine = StartCoroutine(FadeOutRoutine());
@@ -145,6 +145,7 @@ namespace CorgiCommando.UI
                 yield return null;
             }
 
+            _fadeCoroutine = null;
             Hide();
         }
 

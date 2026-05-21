@@ -12,6 +12,7 @@ namespace CorgiCommando.UI
     {
         private const float PhaseFlashSeconds = 0.12f;
         private const string DefaultFontName = "Arial.ttf";
+        private static readonly WaitForSeconds PhaseFlashDelay = new WaitForSeconds(PhaseFlashSeconds);
 
         private Text _bossNameText;
         private Image _healthFillImage;
@@ -83,6 +84,7 @@ namespace CorgiCommando.UI
                 if (_flashCoroutine != null)
                 {
                     StopCoroutine(_flashCoroutine);
+                    _flashOverlayImage.enabled = false;
                 }
 
                 _flashCoroutine = StartCoroutine(PhaseFlashRoutine());
@@ -215,8 +217,9 @@ namespace CorgiCommando.UI
         private IEnumerator PhaseFlashRoutine()
         {
             _flashOverlayImage.enabled = true;
-            yield return new WaitForSeconds(PhaseFlashSeconds);
+            yield return PhaseFlashDelay;
             _flashOverlayImage.enabled = false;
+            _flashCoroutine = null;
         }
 
         private static Font GetDefaultFont()

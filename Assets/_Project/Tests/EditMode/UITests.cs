@@ -203,6 +203,9 @@ namespace CorgiCommando.Tests.EditMode
             Assert.Greater(go.GetComponentsInChildren<Image>(true).Length, 5);
             Assert.NotNull(go.GetComponentInChildren<ComboCounterUI>(true));
             Assert.NotNull(go.GetComponentInChildren<BossBannerUI>(true));
+            Assert.IsTrue(go.GetComponent<HUDController>().HasVisualHierarchy());
+            Assert.NotNull(go.GetComponent<HUDController>().GetHealthFillImage(0));
+            Assert.NotNull(go.GetComponent<HUDController>().GetSpecialMeterFillImage(0));
 
             UnityEngine.Object.DestroyImmediate(go);
         }
