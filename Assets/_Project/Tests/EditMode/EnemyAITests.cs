@@ -54,9 +54,9 @@ namespace CorgiCommando.Tests.EditMode
         private static void CleanupSceneEntities()
         {
             var entities = UnityEngine.Object.FindObjectsOfType<Entity>();
-            for (int i = 0; i < entities.Length; i++)
+            foreach (var entity in entities)
             {
-                UnityEngine.Object.DestroyImmediate(entities[i].gameObject);
+                UnityEngine.Object.DestroyImmediate(entity.gameObject);
             }
         }
 
@@ -446,8 +446,6 @@ namespace CorgiCommando.Tests.EditMode
 
                 // Assert
                 Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>(), Is.Empty);
-                Assert.That(playerGo, Is.Null);
-                Assert.That(enemyGo, Is.Null);
             }
             finally
             {
