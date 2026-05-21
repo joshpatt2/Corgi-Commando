@@ -1,4 +1,3 @@
-using System;
 using NUnit.Framework;
 using UnityEngine;
 using CorgiCommando.Core;
@@ -70,6 +69,56 @@ namespace CorgiCommando.Tests.EditMode
             // Assert — safe area should have positive dimensions
             Assert.Greater(safeArea.width, 0f);
             Assert.Greater(safeArea.height, 0f);
+        }
+
+        [Test]
+        public void PlatformSettings_ResourceAsset_HasRequiredDefaults()
+        {
+            // Act
+            var settings = Resources.Load<PlatformSettings>("PlatformSettings");
+
+            // Assert
+            Assert.IsNotNull(settings);
+            Assert.AreEqual("IL2CPP", settings.iOSScriptingBackend);
+            Assert.AreEqual("ARM64", settings.iOSArchitecture);
+            Assert.AreEqual("13.0", settings.minimumiOSVersion);
+            Assert.IsTrue(settings.landscapeLocked);
+        }
+
+        [Test]
+        public void PlatformBuildConfig_IsIOS_MatchesRuntimePlatform()
+        {
+            Assert.AreEqual(
+                Application.platform == RuntimePlatform.IPhonePlayer,
+                PlatformBuildConfig.IsIOS());
+        }
+
+        [Test]
+        public void PlatformBuildConfig_IsMacOS_MatchesRuntimePlatform()
+        {
+            Assert.AreEqual(
+                Application.platform == RuntimePlatform.OSXPlayer
+                    || Application.platform == RuntimePlatform.OSXEditor,
+                PlatformBuildConfig.IsMacOS());
+        }
+
+        [Test]
+        public void PlatformBuildConfig_IsLandscapeLocked_ReflectsCurrentOrientation()
+        {
+            var previousOrientation = Screen.orientation;
+
+            try
+            {
+                Screen.orientation = ScreenOrientation.LandscapeLeft;
+                Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
+
+                Screen.orientation = ScreenOrientation.Portrait;
+                Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
+            }
+            finally
+            {
+                Screen.orientation = previousOrientation;
+            }
         }
     }
 }

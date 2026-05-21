@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorgiCommando.Data;
 
 namespace CorgiCommando.Core
 {
@@ -9,13 +10,24 @@ namespace CorgiCommando.Core
     public static class PlatformBuildConfig
     {
         /// <summary>
-        /// Validates that the current build target's settings are correct.
-        /// Checks scripting backend, architecture, orientation, minimum OS version.
+        /// Validates runtime platform requirements and required PlatformSettings values.
+        /// Checks platform support, optional landscape lock, safe area validity, and iOS required settings.
         /// </summary>
         /// <returns>True if all settings are valid for the current target.</returns>
         public static bool ValidateCurrentTarget()
         {
-            if (!IsLandscapeLocked())
+            if (!IsIOS() && !IsMacOS())
+            {
+                return false;
+            }
+
+            var settings = Resources.Load<PlatformSettings>("PlatformSettings");
+            if (settings == null)
+            {
+                return false;
+            }
+
+            if (settings.landscapeLocked && !IsLandscapeLocked())
             {
                 return false;
             }
@@ -26,7 +38,14 @@ namespace CorgiCommando.Core
                 return false;
             }
 
-            return IsIOS() || IsMacOS();
+            if (IsIOS())
+            {
+                return settings.iOSScriptingBackend == "IL2CPP"
+                    && settings.iOSArchitecture == "ARM64"
+                    && settings.minimumiOSVersion == "13.0";
+            }
+
+            return true;
         }
 
         /// <summary>
