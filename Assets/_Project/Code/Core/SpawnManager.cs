@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using CorgiCommando.Data;
+using CorgiCommando.Enemies;
 
 namespace CorgiCommando.Core
 {
@@ -41,6 +42,12 @@ namespace CorgiCommando.Core
 
         /// <summary>Fired when a new wave begins spawning.</summary>
         public event Action<int> OnWaveStarted;
+
+        /// <summary>Fired when an enemy instance is spawned.</summary>
+        public event Action<EnemyAI> OnEnemySpawned;
+
+        /// <summary>Fired when an enemy instance dies.</summary>
+        public event Action<EnemyAI> OnEnemyDeath;
 
         /// <summary>
         /// Begins an encounter using the given wave data.
@@ -113,6 +120,33 @@ namespace CorgiCommando.Core
             {
                 ClearCurrentWave();
             }
+        }
+
+        /// <summary>
+        /// Called by runtime spawn code when an enemy instance is created.
+        /// </summary>
+        public void NotifyEnemySpawned(EnemyAI enemy)
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            OnEnemySpawned?.Invoke(enemy);
+        }
+
+        /// <summary>
+        /// Called by runtime code when an enemy instance dies.
+        /// </summary>
+        public void NotifyEnemyDied(EnemyAI enemy)
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            OnEnemyDied();
+            OnEnemyDeath?.Invoke(enemy);
         }
 
         /// <summary>
