@@ -130,12 +130,12 @@ namespace CorgiCommando.Core
             for (int i = 0; i < _bufferedInputs.Count; i++)
             {
                 BufferedInput bufferedInput = _bufferedInputs[i];
-                if (bufferedInput.Timestamp >= _latestTimestamp)
+                if (bufferedInput.Timestamp > _latestTimestamp)
                 {
                     _latestTimestamp = bufferedInput.Timestamp;
                 }
 
-                if (IsMoveAction(bufferedInput.Action) && bufferedInput.Timestamp >= latestMoveTimestamp)
+                if (IsMoveAction(bufferedInput.Action) && bufferedInput.Timestamp > latestMoveTimestamp)
                 {
                     latestMoveTimestamp = bufferedInput.Timestamp;
                     _latestMoveAxis = bufferedInput.AxisValue;

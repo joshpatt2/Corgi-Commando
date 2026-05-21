@@ -83,7 +83,13 @@ namespace CorgiCommando.Core
             }
 
             Vector2 axis = value.Get<Vector2>();
-            Buffer.RecordInput(GetMoveAction(axis), Time.time, axis);
+            InputAction moveAction = GetMoveAction(axis);
+            if (moveAction == InputAction.None)
+            {
+                return;
+            }
+
+            Buffer.RecordInput(moveAction, Time.time, axis);
         }
 
         private void OnPunch()
@@ -153,6 +159,11 @@ namespace CorgiCommando.Core
 
         private static InputAction GetMoveAction(Vector2 axis)
         {
+            if (axis.sqrMagnitude <= 0f)
+            {
+                return InputAction.None;
+            }
+
             if (Mathf.Abs(axis.x) >= Mathf.Abs(axis.y))
             {
                 return axis.x < 0f ? InputAction.MoveLeft : InputAction.MoveRight;
