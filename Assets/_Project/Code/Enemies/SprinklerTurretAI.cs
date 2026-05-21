@@ -45,6 +45,7 @@ namespace CorgiCommando.Enemies
             {
                 TransitionTo(EnemyState.Idle);
                 _cooldownTimer = 0f;
+                return;
             }
 
             _cooldownTimer += deltaTime;

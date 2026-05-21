@@ -91,6 +91,7 @@ namespace CorgiCommando.Tests.EditMode
             cat.Initialize(_catData);
 
             // Act / Assert
+            Assert.AreEqual(EnemyState.Idle, cat.CurrentState);
             Assert.IsTrue(cat.TransitionTo(EnemyState.Chase));
             Assert.IsTrue(cat.TransitionTo(EnemyState.Attack));
             Assert.IsTrue(cat.TransitionTo(EnemyState.Stunned));
@@ -248,6 +249,19 @@ namespace CorgiCommando.Tests.EditMode
             // Assert
             Assert.IsFalse(turret.IsTelegraphing);
             Assert.AreEqual(EnemyState.Attack, turret.CurrentState);
+
+            // Act
+            turret.Tick(0.01f);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+            Assert.IsFalse(turret.IsTelegraphing);
+
+            // Act
+            turret.Tick(turret.FireInterval);
+
+            // Assert
+            Assert.IsTrue(turret.IsTelegraphing);
 
             UnityEngine.Object.DestroyImmediate(go);
         }
