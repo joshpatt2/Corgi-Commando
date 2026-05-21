@@ -83,6 +83,24 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void EnemyAI_TransitionSequence_IdleChaseAttackStunnedRecover_Succeeds()
+        {
+            // Arrange
+            var go = new GameObject("Cat");
+            var cat = go.AddComponent<FeralCatAI>();
+            cat.Initialize(_catData);
+
+            // Act / Assert
+            Assert.IsTrue(cat.TransitionTo(EnemyState.Chase));
+            Assert.IsTrue(cat.TransitionTo(EnemyState.Attack));
+            Assert.IsTrue(cat.TransitionTo(EnemyState.Stunned));
+            Assert.IsTrue(cat.TransitionTo(EnemyState.Recover));
+            Assert.AreEqual(EnemyState.Recover, cat.CurrentState);
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
         public void EnemyAI_OnHit_TransitionsToStunned()
         {
             // Arrange
@@ -205,6 +223,31 @@ namespace CorgiCommando.Tests.EditMode
             // Assert — turret has configurable fire interval
             Assert.Greater(turret.FireInterval, 0f);
             Assert.Greater(turret.TelegraphDuration, 0f);
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void SprinklerTurret_Tick_CyclesTelegraphToAttack()
+        {
+            // Arrange
+            var go = new GameObject("Turret");
+            var turret = go.AddComponent<SprinklerTurretAI>();
+            turret.Initialize(_turretData);
+
+            // Act
+            turret.Tick(turret.FireInterval);
+
+            // Assert
+            Assert.IsTrue(turret.IsTelegraphing);
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+
+            // Act
+            turret.Tick(turret.TelegraphDuration);
+
+            // Assert
+            Assert.IsFalse(turret.IsTelegraphing);
+            Assert.AreEqual(EnemyState.Attack, turret.CurrentState);
 
             UnityEngine.Object.DestroyImmediate(go);
         }

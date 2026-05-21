@@ -1,5 +1,3 @@
-using System;
-
 namespace CorgiCommando.Enemies
 {
     /// <summary>
@@ -9,6 +7,9 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class SprinklerTurretAI : EnemyAI
     {
+        private float _cooldownTimer;
+        private float _telegraphTimer;
+
         /// <summary>Time in seconds between attacks.</summary>
         public float FireInterval { get; set; } = 2.0f;
 
@@ -20,7 +21,39 @@ namespace CorgiCommando.Enemies
 
         public override void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            base.Tick(deltaTime);
+
+            if (CurrentState == EnemyState.Dead)
+            {
+                return;
+            }
+
+            if (IsTelegraphing)
+            {
+                _telegraphTimer += deltaTime;
+                if (_telegraphTimer >= TelegraphDuration)
+                {
+                    IsTelegraphing = false;
+                    _telegraphTimer = 0f;
+                    TransitionTo(EnemyState.Attack);
+                    _cooldownTimer = 0f;
+                }
+
+                return;
+            }
+
+            if (CurrentState == EnemyState.Attack)
+            {
+                TransitionTo(EnemyState.Idle);
+            }
+
+            _cooldownTimer += deltaTime;
+            if (_cooldownTimer >= FireInterval)
+            {
+                IsTelegraphing = true;
+                _telegraphTimer = 0f;
+                TransitionTo(EnemyState.Idle);
+            }
         }
     }
 }

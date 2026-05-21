@@ -1,5 +1,3 @@
-using System;
-
 namespace CorgiCommando.Enemies
 {
     /// <summary>
@@ -10,7 +8,7 @@ namespace CorgiCommando.Enemies
     {
         public override void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            base.Tick(deltaTime);
         }
     }
 }

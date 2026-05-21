@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 using CorgiCommando.Core;
 
 namespace CorgiCommando.Enemies
@@ -10,6 +10,9 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class AggroSlotManager
     {
+        private readonly Dictionary<Entity, List<EnemyAI>> _slotsByTarget = new Dictionary<Entity, List<EnemyAI>>();
+        private readonly Dictionary<EnemyAI, Entity> _targetByEnemy = new Dictionary<EnemyAI, Entity>();
+
         /// <summary>Maximum number of attackers per player target (default 2).</summary>
         public int MaxSlotsPerTarget { get; set; } = 2;
 
@@ -19,7 +22,35 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public bool TryReserveSlot(EnemyAI enemy, Entity target)
         {
-            throw new NotImplementedException();
+            if (enemy == null || target == null)
+            {
+                return false;
+            }
+
+            if (_targetByEnemy.TryGetValue(enemy, out var existingTarget))
+            {
+                if (existingTarget == target)
+                {
+                    return true;
+                }
+
+                ReleaseSlot(enemy);
+            }
+
+            if (!_slotsByTarget.TryGetValue(target, out var attackers))
+            {
+                attackers = new List<EnemyAI>();
+                _slotsByTarget[target] = attackers;
+            }
+
+            if (attackers.Count >= MaxSlotsPerTarget)
+            {
+                return false;
+            }
+
+            attackers.Add(enemy);
+            _targetByEnemy[enemy] = target;
+            return true;
         }
 
         /// <summary>
@@ -27,7 +58,27 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void ReleaseSlot(EnemyAI enemy)
         {
-            throw new NotImplementedException();
+            if (enemy == null)
+            {
+                return;
+            }
+
+            if (!_targetByEnemy.TryGetValue(enemy, out var target))
+            {
+                return;
+            }
+
+            _targetByEnemy.Remove(enemy);
+            if (!_slotsByTarget.TryGetValue(target, out var attackers))
+            {
+                return;
+            }
+
+            attackers.Remove(enemy);
+            if (attackers.Count == 0)
+            {
+                _slotsByTarget.Remove(target);
+            }
         }
 
         /// <summary>
@@ -35,7 +86,12 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public int GetOccupiedSlots(Entity target)
         {
-            throw new NotImplementedException();
+            if (target == null)
+            {
+                return 0;
+            }
+
+            return _slotsByTarget.TryGetValue(target, out var attackers) ? attackers.Count : 0;
         }
 
         /// <summary>
@@ -43,7 +99,7 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public bool HasAvailableSlot(Entity target)
         {
-            throw new NotImplementedException();
+            return GetOccupiedSlots(target) < MaxSlotsPerTarget;
         }
 
         /// <summary>
@@ -51,7 +107,8 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void ClearAll()
         {
-            throw new NotImplementedException();
+            _slotsByTarget.Clear();
+            _targetByEnemy.Clear();
         }
     }
 }

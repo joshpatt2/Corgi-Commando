@@ -1,5 +1,4 @@
 using System;
-using UnityEngine;
 using CorgiCommando.Core;
 using CorgiCommando.Data;
 
@@ -31,7 +30,15 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Initialize(EnemyData data)
         {
-            throw new NotImplementedException();
+            if (data == null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            Data = data;
+            CurrentTarget = null;
+            HasAggroSlot = false;
+            CurrentState = EnemyState.Idle;
         }
 
         /// <summary>
@@ -39,7 +46,25 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public bool TransitionTo(EnemyState newState)
         {
-            throw new NotImplementedException();
+            var oldState = CurrentState;
+            if (oldState == newState)
+            {
+                return false;
+            }
+
+            if (!IsValidTransition(oldState, newState))
+            {
+                return false;
+            }
+
+            CurrentState = newState;
+            if (newState == EnemyState.Stunned || newState == EnemyState.Dead)
+            {
+                HasAggroSlot = false;
+            }
+
+            OnStateChanged?.Invoke(oldState, newState);
+            return true;
         }
 
         /// <summary>
@@ -47,7 +72,10 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public virtual void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            if (deltaTime < 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(deltaTime));
+            }
         }
 
         /// <summary>
@@ -55,7 +83,27 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void OnHit()
         {
-            throw new NotImplementedException();
+            TransitionTo(EnemyState.Stunned);
+        }
+
+        private static bool IsValidTransition(EnemyState from, EnemyState to)
+        {
+            if (to == EnemyState.Dead)
+            {
+                return true;
+            }
+
+            return from switch
+            {
+                EnemyState.Idle => to == EnemyState.Chase || to == EnemyState.Attack || to == EnemyState.Stunned || to == EnemyState.Fleeing,
+                EnemyState.Chase => to == EnemyState.Attack || to == EnemyState.Stunned || to == EnemyState.Idle || to == EnemyState.Fleeing,
+                EnemyState.Attack => to == EnemyState.Stunned || to == EnemyState.Recover || to == EnemyState.Idle,
+                EnemyState.Stunned => to == EnemyState.Recover || to == EnemyState.Dead,
+                EnemyState.Recover => to == EnemyState.Chase || to == EnemyState.Attack || to == EnemyState.Idle || to == EnemyState.Fleeing,
+                EnemyState.Fleeing => to == EnemyState.Stunned || to == EnemyState.Dead || to == EnemyState.Idle,
+                EnemyState.Dead => false,
+                _ => false
+            };
         }
     }
 }
