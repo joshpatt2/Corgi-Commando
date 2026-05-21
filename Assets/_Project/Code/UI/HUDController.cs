@@ -11,8 +11,17 @@ namespace CorgiCommando.UI
     public class HUDController : MonoBehaviour
     {
         private const int MaxPlayers = 2;
+        private const int DefaultMaxHealth = 100;
+        private const int DefaultCurrentHealth = 100;
+        private const float DefaultMaxSpecial = 100f;
+        private const float DefaultCurrentSpecial = 0f;
         private const float SpecialMeterFullThreshold = 0.999f;
         private const string DefaultFontName = "Arial.ttf";
+        private static readonly Color PlayerPanelBackgroundColor = new Color(0f, 0f, 0f, 0.45f);
+        private static readonly Color PlayerOnePortraitColor = new Color(1f, 0.55f, 0.15f, 1f);
+        private static readonly Color PlayerTwoPortraitColor = new Color(0.55f, 0.8f, 1f, 1f);
+        private static readonly Color SpecialMeterFullColor = new Color(1f, 0.9f, 0.35f, 1f);
+        private static readonly Color SpecialMeterNormalColor = new Color(0.3f, 0.85f, 1f, 1f);
 
         private bool _isSafeAreaApplied;
         private float _timeScaleBeforePause = 1f;
@@ -85,8 +94,8 @@ namespace CorgiCommando.UI
             {
                 fillImage.fillAmount = ratio;
                 fillImage.color = ratio >= SpecialMeterFullThreshold
-                    ? new Color(1f, 0.9f, 0.35f, 1f)
-                    : new Color(0.3f, 0.85f, 1f, 1f);
+                    ? SpecialMeterFullColor
+                    : SpecialMeterNormalColor;
             }
         }
 
@@ -205,10 +214,10 @@ namespace CorgiCommando.UI
         {
             for (int i = 0; i < MaxPlayers; i++)
             {
-                _maxHealth[i] = 100;
-                _currentHealth[i] = 100;
-                _maxSpecial[i] = 100f;
-                _currentSpecial[i] = 0f;
+                _maxHealth[i] = DefaultMaxHealth;
+                _currentHealth[i] = DefaultCurrentHealth;
+                _maxSpecial[i] = DefaultMaxSpecial;
+                _currentSpecial[i] = DefaultCurrentSpecial;
             }
         }
 
@@ -261,7 +270,7 @@ namespace CorgiCommando.UI
             panelRect.sizeDelta = new Vector2(240f, 72f);
             panelRect.anchoredPosition = isLeftSide ? new Vector2(24f, -24f) : new Vector2(-24f, -24f);
 
-            panelGO.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.45f);
+            panelGO.GetComponent<Image>().color = PlayerPanelBackgroundColor;
 
             var portraitGO = new GameObject("Portrait", typeof(RectTransform), typeof(Image));
             portraitGO.transform.SetParent(panelGO.transform, false);
@@ -272,16 +281,20 @@ namespace CorgiCommando.UI
             portraitRect.sizeDelta = new Vector2(36f, 36f);
             portraitRect.anchoredPosition = new Vector2(8f, 0f);
             portraitGO.GetComponent<Image>().color = slot == 0
-                ? new Color(1f, 0.55f, 0.15f, 1f)
-                : new Color(0.55f, 0.8f, 1f, 1f);
+                ? PlayerOnePortraitColor
+                : PlayerTwoPortraitColor;
 
             var healthBackground = CreateBarBackground("HealthBarBG", panelGO.transform, new Vector2(52f, -14f), new Vector2(176f, 16f));
             _healthFillImages[slot] = CreateFilledBar("HealthBarFill", healthBackground.transform, new Color(0.95f, 0.2f, 0.2f, 1f));
-            _healthFillImages[slot].fillAmount = _currentHealth[slot] / (float)_maxHealth[slot];
+            _healthFillImages[slot].fillAmount = _maxHealth[slot] > 0
+                ? _currentHealth[slot] / (float)_maxHealth[slot]
+                : 0f;
 
             var specialBackground = CreateBarBackground("SpecialMeterBG", panelGO.transform, new Vector2(52f, -38f), new Vector2(176f, 14f));
             _specialFillImages[slot] = CreateFilledBar("SpecialMeterFill", specialBackground.transform, new Color(0.3f, 0.85f, 1f, 1f));
-            _specialFillImages[slot].fillAmount = _currentSpecial[slot] / _maxSpecial[slot];
+            _specialFillImages[slot].fillAmount = _maxSpecial[slot] > 0f
+                ? _currentSpecial[slot] / _maxSpecial[slot]
+                : 0f;
         }
 
         private void BuildComboCounter()

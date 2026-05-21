@@ -215,7 +215,7 @@ namespace CorgiCommando.UI
         private IEnumerator PhaseFlashRoutine()
         {
             _flashOverlayImage.enabled = true;
-            yield return new WaitForSecondsRealtime(PhaseFlashSeconds);
+            yield return new WaitForSeconds(PhaseFlashSeconds);
             _flashOverlayImage.enabled = false;
         }
 
