@@ -102,6 +102,56 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void FeralCatAI_Tick_PlayerInAggroRange_TransitionsToChase()
+        {
+            // Arrange
+            var catGo = new GameObject("Cat");
+            var cat = catGo.AddComponent<FeralCatAI>();
+            cat.Initialize(_catData);
+            catGo.transform.position = Vector3.zero;
+
+            var playerGo = new GameObject("Player");
+            var player = playerGo.AddComponent<Entity>();
+            playerGo.transform.position = new Vector3(_catData.aggroRange - 0.5f, 0f, 0f);
+
+            // Act
+            cat.Tick(0.016f);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Chase, cat.CurrentState);
+
+            UnityEngine.Object.DestroyImmediate(catGo);
+            UnityEngine.Object.DestroyImmediate(playerGo);
+        }
+
+        [Test]
+        public void FeralCatAI_Tick_PlayerInAttackRange_TransitionsToAttack()
+        {
+            // Arrange
+            var manager = new AggroSlotManager();
+
+            var catGo = new GameObject("Cat");
+            var cat = catGo.AddComponent<FeralCatAI>();
+            cat.Initialize(_catData);
+            catGo.transform.position = Vector3.zero;
+            cat.TransitionTo(EnemyState.Chase);
+
+            var playerGo = new GameObject("Player");
+            var player = playerGo.AddComponent<Entity>();
+            playerGo.transform.position = new Vector3(_catData.attackRange - 0.25f, 0f, 0f);
+
+            // Act
+            cat.Tick(0.016f);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Attack, cat.CurrentState);
+            Assert.AreEqual(1, manager.GetOccupiedSlots(player));
+
+            UnityEngine.Object.DestroyImmediate(catGo);
+            UnityEngine.Object.DestroyImmediate(playerGo);
+        }
+
+        [Test]
         public void EnemyAI_OnHit_TransitionsToStunned()
         {
             // Arrange
@@ -195,6 +245,65 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void EnemyAI_TransitionTo_Stunned_ReleasesAggroSlot()
+        {
+            // Arrange
+            var manager = new AggroSlotManager();
+            var targetGo = new GameObject("Player");
+            var target = targetGo.AddComponent<Entity>();
+            var enemyGo = new GameObject("Enemy");
+            var enemy = enemyGo.AddComponent<FeralCatAI>();
+            enemy.Initialize(_catData);
+
+            Assert.IsTrue(manager.TryReserveSlot(enemy, target));
+
+            // Act
+            enemy.TransitionTo(EnemyState.Stunned);
+
+            // Assert
+            Assert.AreEqual(0, manager.GetOccupiedSlots(target));
+            Assert.IsFalse(enemy.HasAggroSlot);
+
+            UnityEngine.Object.DestroyImmediate(targetGo);
+            UnityEngine.Object.DestroyImmediate(enemyGo);
+        }
+
+        [Test]
+        public void FeralCatAI_Tick_WhenNoAggroSlot_RemainsInChaseAndCircles()
+        {
+            // Arrange
+            var manager = new AggroSlotManager { MaxSlotsPerTarget = 1 };
+
+            var targetGo = new GameObject("Player");
+            var target = targetGo.AddComponent<Entity>();
+            targetGo.transform.position = new Vector3(1f, 0f, 0f);
+
+            var slotHolderGo = new GameObject("SlotHolder");
+            var slotHolder = slotHolderGo.AddComponent<FeralCatAI>();
+            slotHolder.Initialize(_catData);
+            slotHolder.TransitionTo(EnemyState.Chase);
+            Assert.IsTrue(manager.TryReserveSlot(slotHolder, target));
+
+            var catGo = new GameObject("Cat");
+            var cat = catGo.AddComponent<FeralCatAI>();
+            cat.Initialize(_catData);
+            cat.TransitionTo(EnemyState.Chase);
+            catGo.transform.position = Vector3.zero;
+            Vector3 before = catGo.transform.position;
+
+            // Act
+            cat.Tick(0.1f);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Chase, cat.CurrentState);
+            Assert.AreNotEqual(before, catGo.transform.position);
+
+            UnityEngine.Object.DestroyImmediate(targetGo);
+            UnityEngine.Object.DestroyImmediate(slotHolderGo);
+            UnityEngine.Object.DestroyImmediate(catGo);
+        }
+
+        [Test]
         public void RaccoonBandit_StealTreats_TransitionsToFleeing()
         {
             // Arrange
@@ -209,6 +318,28 @@ namespace CorgiCommando.Tests.EditMode
             Assert.IsTrue(raccoon.IsCarryingTreats);
             Assert.AreEqual(10, raccoon.StolenTreatsAmount);
             Assert.AreEqual(EnemyState.Fleeing, raccoon.CurrentState);
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void RaccoonBandit_DiesWhileCarryingTreats_FiresDropEvent()
+        {
+            // Arrange
+            var go = new GameObject("Raccoon");
+            var raccoon = go.AddComponent<RaccoonBanditAI>();
+            raccoon.Initialize(_raccoonData);
+            raccoon.StealTreats(10);
+            int dropped = 0;
+            raccoon.OnDroppedTreats += amount => dropped = amount;
+
+            // Act
+            raccoon.TransitionTo(EnemyState.Dead);
+
+            // Assert
+            Assert.AreEqual(10, dropped);
+            Assert.IsFalse(raccoon.IsCarryingTreats);
+            Assert.AreEqual(0, raccoon.StolenTreatsAmount);
 
             UnityEngine.Object.DestroyImmediate(go);
         }

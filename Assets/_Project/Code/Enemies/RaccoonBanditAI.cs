@@ -1,3 +1,5 @@
+using System;
+
 namespace CorgiCommando.Enemies
 {
     /// <summary>
@@ -7,6 +9,8 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class RaccoonBanditAI : EnemyAI
     {
+        public event Action<int> OnDroppedTreats;
+
         /// <summary>Whether this raccoon is currently carrying stolen Treats.</summary>
         public bool IsCarryingTreats { get; private set; }
 
@@ -33,6 +37,18 @@ namespace CorgiCommando.Enemies
         public override void Tick(float deltaTime)
         {
             base.Tick(deltaTime);
+        }
+
+        protected override void OnStateTransitioned(EnemyState oldState, EnemyState newState)
+        {
+            if (newState != EnemyState.Dead || !IsCarryingTreats || StolenTreatsAmount <= 0)
+            {
+                return;
+            }
+
+            OnDroppedTreats?.Invoke(StolenTreatsAmount);
+            IsCarryingTreats = false;
+            StolenTreatsAmount = 0;
         }
     }
 }

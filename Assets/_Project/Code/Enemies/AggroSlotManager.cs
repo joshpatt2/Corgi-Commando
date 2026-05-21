@@ -10,8 +10,14 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class AggroSlotManager
     {
+        private static AggroSlotManager _latestManager;
         private readonly Dictionary<Entity, List<EnemyAI>> _slotsByTarget = new Dictionary<Entity, List<EnemyAI>>();
         private readonly Dictionary<EnemyAI, Entity> _targetByEnemy = new Dictionary<EnemyAI, Entity>();
+
+        public AggroSlotManager()
+        {
+            _latestManager = this;
+        }
 
         /// <summary>Maximum number of attackers per player target (default 2).</summary>
         public int MaxSlotsPerTarget { get; set; } = 2;
@@ -50,6 +56,7 @@ namespace CorgiCommando.Enemies
 
             attackers.Add(enemy);
             _targetByEnemy[enemy] = target;
+            enemy.SetAggroSlotStatus(true);
             return true;
         }
 
@@ -79,6 +86,8 @@ namespace CorgiCommando.Enemies
             {
                 _slotsByTarget.Remove(target);
             }
+
+            enemy.SetAggroSlotStatus(false);
         }
 
         /// <summary>
@@ -109,6 +118,21 @@ namespace CorgiCommando.Enemies
         {
             _slotsByTarget.Clear();
             _targetByEnemy.Clear();
+        }
+
+        internal static void ReleaseSlotFromAllManagers(EnemyAI enemy)
+        {
+            _latestManager?.ReleaseSlot(enemy);
+        }
+
+        internal static bool TryReserveAny(EnemyAI enemy, Entity target)
+        {
+            return _latestManager != null && _latestManager.TryReserveSlot(enemy, target);
+        }
+
+        internal static bool HasActiveManager()
+        {
+            return _latestManager != null;
         }
     }
 }

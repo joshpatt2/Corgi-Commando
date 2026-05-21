@@ -1,6 +1,7 @@
 using System;
 using CorgiCommando.Core;
 using CorgiCommando.Data;
+using UnityEngine;
 
 namespace CorgiCommando.Enemies
 {
@@ -36,6 +37,7 @@ namespace CorgiCommando.Enemies
             }
 
             Data = data;
+            Faction = CorgiCommando.Core.Faction.Enemy;
             CurrentTarget = null;
             HasAggroSlot = false;
             CurrentState = EnemyState.Idle;
@@ -60,10 +62,12 @@ namespace CorgiCommando.Enemies
             CurrentState = newState;
             if (newState == EnemyState.Stunned || newState == EnemyState.Dead)
             {
+                AggroSlotManager.ReleaseSlotFromAllManagers(this);
                 HasAggroSlot = false;
             }
 
             OnStateChanged?.Invoke(oldState, newState);
+            OnStateTransitioned(oldState, newState);
             return true;
         }
 
@@ -72,9 +76,52 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public virtual void Tick(float deltaTime)
         {
-            if (deltaTime < 0f)
+            if (deltaTime <= 0f || CurrentState == EnemyState.Dead)
             {
-                throw new ArgumentOutOfRangeException(nameof(deltaTime));
+                return;
+            }
+
+            if (CurrentState == EnemyState.Stunned)
+            {
+                TransitionTo(EnemyState.Recover);
+                return;
+            }
+
+            if (CurrentState == EnemyState.Recover)
+            {
+                TransitionTo(EnemyState.Chase);
+                return;
+            }
+
+            if (CurrentState == EnemyState.Attack)
+            {
+                TransitionTo(EnemyState.Recover);
+                return;
+            }
+
+            CurrentTarget = FindClosestPlayerTarget();
+            if (CurrentTarget == null || Data == null)
+            {
+                return;
+            }
+
+            float distance = Vector3.Distance(transform.position, CurrentTarget.transform.position);
+            if (CurrentState == EnemyState.Idle && distance <= Data.aggroRange)
+            {
+                TransitionTo(EnemyState.Chase);
+                return;
+            }
+
+            if (CurrentState == EnemyState.Chase && distance <= Data.attackRange)
+            {
+                if (TryAcquireAggroSlot())
+                {
+                    TransitionTo(EnemyState.Attack);
+                }
+                else
+                {
+                    CircleTarget(deltaTime);
+                }
             }
         }
 
@@ -84,6 +131,88 @@ namespace CorgiCommando.Enemies
         public void OnHit()
         {
             TransitionTo(EnemyState.Stunned);
+        }
+
+        internal void SetAggroSlotStatus(bool hasSlot)
+        {
+            HasAggroSlot = hasSlot;
+        }
+
+        protected virtual void OnStateTransitioned(EnemyState oldState, EnemyState newState)
+        {
+        }
+
+        private bool TryAcquireAggroSlot()
+        {
+            if (HasAggroSlot)
+            {
+                return true;
+            }
+
+            if (CurrentTarget == null)
+            {
+                return false;
+            }
+
+            if (AggroSlotManager.TryReserveAny(this, CurrentTarget))
+            {
+                return true;
+            }
+
+            if (!AggroSlotManager.HasActiveManager())
+            {
+                HasAggroSlot = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private Entity FindClosestPlayerTarget()
+        {
+            var entities = UnityEngine.Object.FindObjectsOfType<Entity>();
+            Entity closest = null;
+            float closestDistance = float.MaxValue;
+
+            for (int i = 0; i < entities.Length; i++)
+            {
+                var candidate = entities[i];
+                if (candidate == null || candidate == this || !candidate.IsAlive || candidate is EnemyAI)
+                {
+                    continue;
+                }
+
+                if (candidate.Faction != Faction.Player)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(transform.position, candidate.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closest = candidate;
+                }
+            }
+
+            return closest;
+        }
+
+        private void CircleTarget(float deltaTime)
+        {
+            if (CurrentTarget == null || Data == null)
+            {
+                return;
+            }
+
+            Vector3 toTarget = CurrentTarget.transform.position - transform.position;
+            if (toTarget.sqrMagnitude <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            Vector3 lateral = new Vector3(-toTarget.y, toTarget.x, 0f).normalized;
+            transform.position += lateral * Data.moveSpeed * deltaTime;
         }
 
         private static bool IsValidTransition(EnemyState from, EnemyState to)
