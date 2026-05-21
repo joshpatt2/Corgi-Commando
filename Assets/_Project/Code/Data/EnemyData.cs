@@ -46,6 +46,10 @@ namespace CorgiCommando.Data
 
         [Tooltip("Bonus Treats if killed by combo finisher")]
         public int comboFinisherBonus = 3;
+
+        [Header("Boss")]
+        [Tooltip("HP for the pilot entity ejected at Phase 3 (boss enemies only)")]
+        public int pilotMaxHP = 100;
     }
 
     /// <summary>

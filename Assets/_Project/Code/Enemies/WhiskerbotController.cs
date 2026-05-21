@@ -34,12 +34,20 @@ namespace CorgiCommando.Enemies
         /// <summary>Fired when the laser pointer activates.</summary>
         public event Action OnLaserActivated;
 
+        /// <summary>Fired when the laser pointer deactivates.</summary>
+        public event Action OnLaserDeactivated;
+
+        private EnemyData _data;
+
         /// <summary>
         /// Initializes the boss with its data.
         /// </summary>
         public void Initialize(EnemyData data)
         {
-            throw new NotImplementedException();
+            _data = data;
+            TotalPhases = 3;
+            CurrentPhase = 1;
+            AddEntityComponent(new HealthComponent(data.maxHP));
         }
 
         /// <summary>
@@ -48,7 +56,21 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public override void CheckPhaseTransition(int currentHP, int maxHP)
         {
-            throw new NotImplementedException();
+            if (maxHP <= 0)
+            {
+                return;
+            }
+
+            float ratio = (float)currentHP / maxHP;
+
+            if (CurrentPhase == 1 && ratio <= Phase2Threshold)
+            {
+                TransitionToPhase(2);
+            }
+            else if (CurrentPhase == 2 && ratio <= Phase3Threshold)
+            {
+                TransitionToPhase(3);
+            }
         }
 
         /// <summary>
@@ -57,7 +79,8 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void ActivateLaser()
         {
-            throw new NotImplementedException();
+            IsLaserActive = true;
+            OnLaserActivated?.Invoke();
         }
 
         /// <summary>
@@ -65,7 +88,8 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void DeactivateLaser()
         {
-            throw new NotImplementedException();
+            IsLaserActive = false;
+            OnLaserDeactivated?.Invoke();
         }
 
         /// <summary>
@@ -74,7 +98,14 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void EjectPilot()
         {
-            throw new NotImplementedException();
+            var pilotGo = new GameObject("Maine Coon_Pilot");
+            pilotGo.transform.position = transform.position;
+            var pilot = pilotGo.AddComponent<Entity>();
+            int pilotHP = _data.pilotMaxHP;
+            pilot.AddEntityComponent(new HealthComponent(pilotHP));
+            PilotEntity = pilot;
+            IsPilotEjected = true;
+            OnPilotEjected?.Invoke();
         }
 
         /// <summary>
@@ -82,7 +113,7 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            // Intentionally empty: WHISKERBOT's behavior is driven by phase events and external UnityEvent scripts.
         }
     }
 }
