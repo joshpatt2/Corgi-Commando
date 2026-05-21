@@ -7,6 +7,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  actions: read
+
 concurrency:
   group: unity-tests-${{ github.ref }}
   cancel-in-progress: true
