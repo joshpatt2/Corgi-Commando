@@ -434,10 +434,8 @@ namespace CorgiCommando.Tests.EditMode
         public void CleanupSceneEntities_RemovesAllEntityGameObjectsFromScene()
         {
             // Arrange
-            var playerGo = new GameObject("Player");
-            playerGo.AddComponent<Entity>();
-            var enemyGo = new GameObject("Enemy");
-            enemyGo.AddComponent<Entity>();
+            new GameObject("Player").AddComponent<Entity>();
+            new GameObject("Enemy").AddComponent<Entity>();
 
             try
             {
@@ -451,16 +449,6 @@ namespace CorgiCommando.Tests.EditMode
             }
             finally
             {
-                if (playerGo != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(playerGo);
-                }
-
-                if (enemyGo != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(enemyGo);
-                }
-
                 CleanupSceneEntities();
             }
         }
