@@ -13,21 +13,37 @@ gh issue edit 1 --repo OWNER/REPO --add-assignee Copilot    # fails: 'Copilot' n
 
 The `gh issue edit` command validates assignees against the repo's collaborator list, and Copilot isn't a standard collaborator — it's a special GitHub agent account.
 
-## What Works
+## What Works (Sometimes): REST API
 
 ```bash
 # Direct API call with POST to the assignees endpoint
 gh api repos/OWNER/REPO/issues/N/assignees --method POST --input - <<< '{"assignees":["Copilot"]}'
 ```
 
-The REST API accepts `Copilot` (capital C) as a valid assignee even though the CLI doesn't. This is the reliable programmatic method.
+The REST API accepts `Copilot` (capital C) as a valid assignee even though the CLI doesn't. **However**, this method is unreliable — it can return HTTP 200 but silently fail to assign Copilot.
+
+## What Works (Reliably): GraphQL Mutation
+
+```bash
+# Step 1: Get Copilot's bot node ID (do this once, it's stable per repo)
+gh api graphql -f query='{ repository(owner:"OWNER", name:"REPO") { issue(number:KNOWN_ISSUE) { assignees(first:5) { nodes { login id } } } } }' --jq '.data.repository.issue.assignees.nodes[] | select(.login == "Copilot") | .id'
+# Returns something like: BOT_kgDOC9w8XQ
+
+# Step 2: Get the issue's node ID
+gh api graphql -f query='{ repository(owner:"OWNER", name:"REPO") { issue(number:N) { id } } }' --jq '.data.repository.issue.id'
+
+# Step 3: Assign via mutation
+gh api graphql -f query='mutation { addAssigneesToAssignable(input: { assignableId: "ISSUE_NODE_ID", assigneeIds: ["BOT_kgDOC9w8XQ"] }) { assignable { ... on Issue { assignees(first:5) { nodes { login } } } } } }' --jq '.data.addAssigneesToAssignable.assignable.assignees.nodes[].login'
+```
+
+For this repo, Copilot's bot ID is `BOT_kgDOC9w8XQ`.
 
 ## Gotcha: Self-Assignment Side Effect
 
-The API call above may also add the authenticated user (you) as an assignee. Clean it up with:
+Both methods may also add the authenticated user (you) as an assignee. Clean it up with:
 
 ```bash
-gh api repos/OWNER/REPO/issues/N/assignees --method DELETE --input - <<< '{"assignees":["YOUR_USERNAME"]}'
+echo '{"assignees":["YOUR_USERNAME"]}' | gh api repos/OWNER/REPO/issues/N/assignees --method DELETE --input - --jq '.assignees[].login'
 ```
 
 ## Verify Assignment
@@ -41,15 +57,21 @@ gh api repos/OWNER/REPO/issues/N -q '.assignees[].login'
 
 - Copilot Coding Agent must be enabled on the repo (Settings > Copilot > Coding agent)
 - The first assignment may need to happen via the GitHub UI to activate the agent on the repo
-- Once activated, the API method works for subsequent assignments
+- Once activated, the GraphQL method works reliably for subsequent assignments
+- The REST API method may stop working after initial activation — prefer GraphQL
 
 ## Batch Assignment Example
 
 ```bash
-# Assign Copilot to issues 1 and 2
-for i in 1 2; do
-  gh api repos/OWNER/REPO/issues/$i/assignees --method POST --input - <<< '{"assignees":["Copilot"]}'
-  gh api repos/OWNER/REPO/issues/$i/assignees --method DELETE --input - <<< '{"assignees":["YOUR_USERNAME"]}'
+# Copilot bot ID (stable for this repo)
+COPILOT_ID="BOT_kgDOC9w8XQ"
+
+# Assign Copilot to issues 3 and 4
+for i in 3 4; do
+  ISSUE_ID=$(gh api graphql -f query="{ repository(owner:\"OWNER\", name:\"REPO\") { issue(number:$i) { id } } }" --jq '.data.repository.issue.id')
+  gh api graphql -f query="mutation { addAssigneesToAssignable(input: { assignableId: \"$ISSUE_ID\", assigneeIds: [\"$COPILOT_ID\"] }) { assignable { ... on Issue { assignees(first:5) { nodes { login } } } } } }" --jq '.data.addAssigneesToAssignable.assignable.assignees.nodes[].login'
+  # Clean up self-assignment
+  echo "{\"assignees\":[\"YOUR_USERNAME\"]}" | gh api repos/OWNER/REPO/issues/$i/assignees --method DELETE --input -
 done
 ```
 
