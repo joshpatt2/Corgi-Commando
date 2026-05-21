@@ -11,12 +11,18 @@ namespace CorgiCommando.UI
     {
         private bool _isSafeAreaApplied;
         private float _timeScaleBeforePause = 1f;
+        private RectTransform _cachedRectTransform;
 
         /// <summary>Whether the game is currently paused.</summary>
         public bool IsPaused { get; private set; }
 
         /// <summary>Fired when pause state changes.</summary>
         public event Action<bool> OnPauseStateChanged;
+
+        private void Awake()
+        {
+            _cachedRectTransform = GetComponent<RectTransform>();
+        }
 
         /// <summary>
         /// Updates the health bar display for the given player.
@@ -78,7 +84,7 @@ namespace CorgiCommando.UI
         /// </summary>
         public void ApplySafeArea()
         {
-            var rectTransform = GetComponent<RectTransform>();
+            var rectTransform = _cachedRectTransform != null ? _cachedRectTransform : GetComponent<RectTransform>();
             if (rectTransform != null && Screen.width > 0 && Screen.height > 0)
             {
                 Rect safeArea = Screen.safeArea;
@@ -90,9 +96,11 @@ namespace CorgiCommando.UI
                 anchorMax.y /= Screen.height;
                 rectTransform.anchorMin = anchorMin;
                 rectTransform.anchorMax = anchorMax;
+                _isSafeAreaApplied = true;
+                return;
             }
 
-            _isSafeAreaApplied = true;
+            _isSafeAreaApplied = false;
         }
 
         /// <summary>
