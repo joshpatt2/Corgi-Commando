@@ -14,7 +14,7 @@ namespace CorgiCommando.Core
         private const string RequiredIOSArchitecture = "ARM64";
         private const string RequiredMinimumIOSVersion = "13.0";
 
-        public static Func<ScreenOrientation> OrientationProvider { get; set; } = () => Screen.orientation;
+        internal static Func<ScreenOrientation> OrientationProvider { get; set; } = () => Screen.orientation;
 
         /// <summary>
         /// Validates runtime platform requirements and required PlatformSettings values.
