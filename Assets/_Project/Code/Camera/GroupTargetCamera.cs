@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CorgiCommando.Camera
@@ -25,12 +26,25 @@ namespace CorgiCommando.Camera
         /// <summary>Fired when arena lock is released.</summary>
         public event Action OnArenaUnlocked;
 
+        // Targets with their Cinemachine weights (weight will be forwarded to TargetGroup when Cinemachine is integrated).
+        // Callers must call RemoveTarget when a player GameObject is destroyed; stale refs are skipped but
+        // not purged automatically, so _targets.Count may be misleading if ownership is violated.
+        private readonly List<(Transform transform, float weight)> _targets = new List<(Transform, float)>();
+        private bool _wasOverCap;
+        // TODO: wire _arenaMinX/_arenaMaxX into CinemachineConfiner2D bounds when Cinemachine is integrated
+        private float _arenaMinX;
+        private float _arenaMaxX;
+
         /// <summary>
         /// Adds a player transform to the target group.
+        /// <paramref name="weight"/> is stored and will be forwarded to CinemachineTargetGroup once Cinemachine is integrated.
         /// </summary>
         public void AddTarget(Transform target, float weight = 1f)
         {
-            throw new NotImplementedException();
+            if (target == null) return;
+            foreach (var entry in _targets)
+                if (entry.transform == target) return;
+            _targets.Add((target, weight));
         }
 
         /// <summary>
@@ -38,7 +52,7 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void RemoveTarget(Transform target)
         {
-            throw new NotImplementedException();
+            _targets.RemoveAll(e => e.transform == target);
         }
 
         /// <summary>
@@ -47,7 +61,10 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void LockToArena(float minX, float maxX)
         {
-            throw new NotImplementedException();
+            _arenaMinX = minX;
+            _arenaMaxX = maxX;
+            IsArenaLocked = true;
+            OnArenaLocked?.Invoke();
         }
 
         /// <summary>
@@ -55,15 +72,35 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void UnlockArena()
         {
-            throw new NotImplementedException();
+            IsArenaLocked = false;
+            OnArenaUnlocked?.Invoke();
         }
 
         /// <summary>
-        /// Returns the current horizontal distance between the two furthest targets.
+        /// Returns the current horizontal span (max X − min X) across all tracked targets.
+        /// Returns 0 if fewer than two targets are tracked.
         /// </summary>
         public float GetPlayerDistance()
         {
-            throw new NotImplementedException();
+            if (_targets.Count < 2) return 0f;
+
+            float minX = float.MaxValue;
+            float maxX = float.MinValue;
+            foreach (var e in _targets)
+            {
+                if (e.transform == null) continue;
+                if (e.transform.position.x < minX) minX = e.transform.position.x;
+                if (e.transform.position.x > maxX) maxX = e.transform.position.x;
+            }
+            return maxX - minX;
+        }
+
+        private void Update()
+        {
+            bool isOverCap = _targets.Count >= 2 && GetPlayerDistance() > MaxPlayerDistance;
+            if (isOverCap && !_wasOverCap)
+                OnDistanceCapReached?.Invoke();
+            _wasOverCap = isOverCap;
         }
     }
 }

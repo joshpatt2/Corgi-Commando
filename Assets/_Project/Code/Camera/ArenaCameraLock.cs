@@ -30,7 +30,9 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void Activate(GroupTargetCamera camera)
         {
-            throw new NotImplementedException();
+            IsActive = true;
+            camera?.LockToArena(ArenaMinX, ArenaMaxX);
+            OnArenaActivated?.Invoke();
         }
 
         /// <summary>
@@ -38,7 +40,9 @@ namespace CorgiCommando.Camera
         /// </summary>
         public void Deactivate(GroupTargetCamera camera)
         {
-            throw new NotImplementedException();
+            IsActive = false;
+            camera?.UnlockArena();
+            OnArenaCleared?.Invoke();
         }
     }
 }
