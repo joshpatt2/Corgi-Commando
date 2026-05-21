@@ -13,6 +13,10 @@ namespace CorgiCommando.Player
     /// </summary>
     public class CorgiController : Entity
     {
+        private const float FramesPerSecond = 60f;
+        private IInputBuffer _inputBuffer;
+        private float _comboWindowRemainingFrames;
+
         /// <summary>Current state in the player state machine.</summary>
         public CorgiState CurrentState { get; private set; }
 
@@ -42,7 +46,16 @@ namespace CorgiCommando.Player
         /// </summary>
         public void Initialize(CorgiData data, IInputBuffer inputBuffer, int playerIndex)
         {
-            throw new NotImplementedException();
+            CharacterData = data ?? throw new ArgumentNullException(nameof(data));
+            _inputBuffer = inputBuffer ?? throw new ArgumentNullException(nameof(inputBuffer));
+            PlayerIndex = playerIndex;
+
+            CurrentState = CorgiState.Idle;
+            ComboStep = 0;
+            IsHoldingWeapon = false;
+            SpecialMeter = 0f;
+            _comboWindowRemainingFrames = 0f;
+            RefreshSpecialReady();
         }
 
         /// <summary>
@@ -52,7 +65,16 @@ namespace CorgiCommando.Player
         /// <returns>True if the transition was valid and applied.</returns>
         public bool TransitionTo(CorgiState newState)
         {
-            throw new NotImplementedException();
+            if (newState == CurrentState || !IsValidTransition(CurrentState, newState))
+            {
+                return false;
+            }
+
+            CorgiState previousState = CurrentState;
+            CurrentState = newState;
+            OnEnterState(newState);
+            OnStateChanged?.Invoke(previousState, newState);
+            return true;
         }
 
         /// <summary>
@@ -60,7 +82,18 @@ namespace CorgiCommando.Player
         /// </summary>
         public AttackData GetCurrentAttackData()
         {
-            throw new NotImplementedException();
+            if (CharacterData == null || CharacterData.comboChain == null || ComboStep <= 0)
+            {
+                return null;
+            }
+
+            int comboIndex = ComboStep - 1;
+            if (comboIndex >= CharacterData.comboChain.Length)
+            {
+                return null;
+            }
+
+            return CharacterData.comboChain[comboIndex];
         }
 
         /// <summary>
@@ -69,7 +102,25 @@ namespace CorgiCommando.Player
         /// </summary>
         public bool UseSpecial()
         {
-            throw new NotImplementedException();
+            if (CharacterData == null)
+            {
+                return false;
+            }
+
+            RefreshSpecialReady();
+            if (!IsSpecialReady || SpecialMeter < CharacterData.specialCost)
+            {
+                return false;
+            }
+
+            if (!IsValidTransition(CurrentState, CorgiState.Special))
+            {
+                return false;
+            }
+
+            SpecialMeter = Mathf.Max(0f, SpecialMeter - CharacterData.specialCost);
+            RefreshSpecialReady();
+            return TransitionTo(CorgiState.Special);
         }
 
         /// <summary>
@@ -77,7 +128,54 @@ namespace CorgiCommando.Player
         /// </summary>
         public void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            if (_inputBuffer == null)
+            {
+                return;
+            }
+
+            if (_comboWindowRemainingFrames > 0f)
+            {
+                _comboWindowRemainingFrames = Mathf.Max(0f, _comboWindowRemainingFrames - (deltaTime * FramesPerSecond));
+            }
+
+            if (_inputBuffer.ConsumeInput(InputAction.Special).HasValue)
+            {
+                UseSpecial();
+                return;
+            }
+
+            switch (CurrentState)
+            {
+                case CorgiState.Attack1:
+                    if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                    {
+                        TransitionTo(CorgiState.Attack2);
+                    }
+                    return;
+                case CorgiState.Attack2:
+                    if (_inputBuffer.ConsumeInput(InputAction.Kick).HasValue || _inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                    {
+                        TransitionTo(CorgiState.Attack3);
+                    }
+                    return;
+            }
+
+            if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+            {
+                TransitionTo(CorgiState.Attack1);
+                return;
+            }
+
+            Vector2 axis = _inputBuffer.GetMoveAxis();
+            bool hasMoveInput = axis.sqrMagnitude > 0f;
+            if (hasMoveInput && CurrentState == CorgiState.Idle)
+            {
+                TransitionTo(CorgiState.Walk);
+            }
+            else if (!hasMoveInput && CurrentState == CorgiState.Walk)
+            {
+                TransitionTo(CorgiState.Idle);
+            }
         }
 
         /// <summary>
@@ -85,7 +183,115 @@ namespace CorgiCommando.Player
         /// </summary>
         public void OnHit(HitResult hitResult)
         {
-            throw new NotImplementedException();
+            if (!hitResult.DidHit)
+            {
+                return;
+            }
+
+            TransitionTo(CorgiState.Hit);
+        }
+
+        private bool IsValidTransition(CorgiState from, CorgiState to)
+        {
+            switch (from)
+            {
+                case CorgiState.Idle:
+                    return to == CorgiState.Walk ||
+                           to == CorgiState.Attack1 ||
+                           to == CorgiState.Special ||
+                           to == CorgiState.Hit;
+                case CorgiState.Walk:
+                    return to == CorgiState.Idle ||
+                           to == CorgiState.Attack1 ||
+                           to == CorgiState.Special ||
+                           to == CorgiState.Hit;
+                case CorgiState.Attack1:
+                    return (to == CorgiState.Attack2 && CanChainToNextAttack()) ||
+                           to == CorgiState.Idle ||
+                           to == CorgiState.Hit;
+                case CorgiState.Attack2:
+                    return (to == CorgiState.Attack3 && CanChainToNextAttack()) ||
+                           to == CorgiState.Idle ||
+                           to == CorgiState.Hit;
+                case CorgiState.Attack3:
+                    return to == CorgiState.Idle ||
+                           to == CorgiState.Hit;
+                case CorgiState.Hit:
+                    return to == CorgiState.Knockdown ||
+                           to == CorgiState.Idle;
+                case CorgiState.Knockdown:
+                    return to == CorgiState.GetUp;
+                case CorgiState.GetUp:
+                    return to == CorgiState.Idle;
+                case CorgiState.Special:
+                    return to == CorgiState.Idle ||
+                           to == CorgiState.Hit;
+                case CorgiState.PickupHold:
+                    return to == CorgiState.Idle ||
+                           to == CorgiState.Walk ||
+                           to == CorgiState.Attack1 ||
+                           to == CorgiState.Special ||
+                           to == CorgiState.Hit;
+                case CorgiState.Dead:
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        private void OnEnterState(CorgiState state)
+        {
+            switch (state)
+            {
+                case CorgiState.Attack1:
+                    ComboStep = 1;
+                    OpenComboWindowForCurrentAttack();
+                    return;
+                case CorgiState.Attack2:
+                    ComboStep = 2;
+                    OpenComboWindowForCurrentAttack();
+                    return;
+                case CorgiState.Attack3:
+                    ComboStep = 3;
+                    OpenComboWindowForCurrentAttack();
+                    return;
+                default:
+                    ComboStep = 0;
+                    _comboWindowRemainingFrames = 0f;
+                    return;
+            }
+        }
+
+        private bool CanChainToNextAttack()
+        {
+            AttackData currentAttack = GetCurrentAttackData();
+            return currentAttack != null &&
+                   currentAttack.comboWindowFrames > 0 &&
+                   _comboWindowRemainingFrames > 0f;
+        }
+
+        private void OpenComboWindowForCurrentAttack()
+        {
+            AttackData currentAttack = GetCurrentAttackData();
+            if (currentAttack == null)
+            {
+                _comboWindowRemainingFrames = 0f;
+                return;
+            }
+
+            _comboWindowRemainingFrames = Mathf.Max(0f, currentAttack.recoveryFrames + currentAttack.comboWindowFrames);
+        }
+
+        private void RefreshSpecialReady()
+        {
+            if (CharacterData == null)
+            {
+                IsSpecialReady = false;
+                return;
+            }
+
+            float requiredMeter = Mathf.Max(CharacterData.maxSpecialMeter, CharacterData.specialCost);
+            IsSpecialReady = SpecialMeter >= requiredMeter;
         }
     }
 }

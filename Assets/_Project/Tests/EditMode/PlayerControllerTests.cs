@@ -153,19 +153,20 @@ namespace CorgiCommando.Tests.EditMode
         [Test]
         public void UseSpecial_WithFullMeter_ConsumesAndReturnsTrue()
         {
-            // Arrange — fill the meter
-            // Design intent: UseSpecial requires the meter to be at max capacity
-            // For testing, we directly test the method contract. Implementation
-            // must check SpecialMeter >= specialCost before consuming.
+            // Arrange — fill meter to max through backing field (combat fills this at runtime)
+            var specialMeterField = typeof(CorgiController).GetField(
+                "<SpecialMeter>k__BackingField",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(specialMeterField);
+            specialMeterField.SetValue(_player, _corgiData.maxSpecialMeter);
 
-            // This test will work once SpecialMeter can be set/filled.
-            // The combat system fills it via AddSpecialMeter.
-            // For the stub test, we verify the contract:
-            // UseSpecial returns false if meter is not full.
+            // Meter readiness is computed by UseSpecial() from current meter/data.
             bool result = _player.UseSpecial();
 
-            // Assert — should fail because meter starts at 0
-            Assert.IsFalse(result);
+            // Assert
+            Assert.IsTrue(result);
+            Assert.AreEqual(0f, _player.SpecialMeter);
+            Assert.AreEqual(CorgiState.Special, _player.CurrentState);
         }
 
         [Test]
