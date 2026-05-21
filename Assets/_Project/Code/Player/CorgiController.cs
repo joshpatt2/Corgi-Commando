@@ -63,8 +63,6 @@ namespace CorgiCommando.Player
             }
 
             PlayerIndex = playerIndex;
-            _characterData = data;
-            _playerIndex = playerIndex;
             _movementController = GetComponent<KinematicMovementController>();
             if (_movementController != null)
             {
@@ -376,6 +374,7 @@ namespace CorgiCommando.Player
                 return;
             }
 
+            int clampedPlayerIndex = Mathf.Clamp(_playerIndex, 0, 1);
             IInputBuffer inputBuffer = null;
             PlayerInputHandler inputHandler = GetComponent<PlayerInputHandler>();
             if (inputHandler != null)
@@ -386,11 +385,10 @@ namespace CorgiCommando.Player
             if (inputBuffer == null)
             {
                 inputBuffer = new InputBuffer();
-                int clampedPlayerIndex = Mathf.Clamp(_playerIndex, 0, 1);
                 inputHandler?.Initialize(inputBuffer, clampedPlayerIndex);
             }
 
-            Initialize(_characterData, inputBuffer, Mathf.Clamp(_playerIndex, 0, 1));
+            Initialize(_characterData, inputBuffer, clampedPlayerIndex);
         }
     }
 }
