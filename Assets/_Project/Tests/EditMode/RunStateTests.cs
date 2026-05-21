@@ -65,6 +65,12 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void AddTreats_NegativeAmount_Throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => _runState.AddTreats(-1));
+        }
+
+        [Test]
         public void ConsumeLife_DecrementsLives()
         {
             // Act
@@ -128,6 +134,18 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void OnPlayerDropIn_InvalidIndex_Throws()
+        {
+            var soloRun = ScriptableObject.CreateInstance<RunState>();
+            soloRun.InitializeRun(3, 1);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => soloRun.OnPlayerDropIn(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => soloRun.OnPlayerDropIn(5));
+
+            UnityEngine.Object.DestroyImmediate(soloRun);
+        }
+
+        [Test]
         public void ReviveSystem_ProximityCountsDown()
         {
             // Arrange
@@ -156,6 +174,22 @@ namespace CorgiCommando.Tests.EditMode
 
             // Assert
             Assert.AreEqual(0, revivedPlayer); // default player index
+        }
+
+        [Test]
+        public void ReviveSystem_CompletesRevive_ReportsProvidedPlayerIndex()
+        {
+            // Arrange
+            var alivePos = Vector3.zero;
+            var downedPos = new Vector3(1f, 0f, 0f);
+            int revivedPlayer = -1;
+            _revive.OnReviveComplete += (idx) => revivedPlayer = idx;
+
+            // Act
+            _revive.Tick(1, alivePos, downedPos, 3.0f);
+
+            // Assert
+            Assert.AreEqual(1, revivedPlayer);
         }
 
         [Test]
