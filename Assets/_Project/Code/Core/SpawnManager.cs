@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 
@@ -12,6 +11,8 @@ namespace CorgiCommando.Core
     /// </summary>
     public class SpawnManager : MonoBehaviour
     {
+        private WaveData _waveData;
+
         /// <summary>Current wave index (0-based).</summary>
         public int CurrentWaveIndex { get; private set; }
 
@@ -41,7 +42,17 @@ namespace CorgiCommando.Core
         /// </summary>
         public void StartEncounter(WaveData waveData)
         {
-            throw new NotImplementedException();
+            if (waveData == null)
+            {
+                throw new ArgumentNullException(nameof(waveData));
+            }
+
+            _waveData = waveData;
+            CurrentWaveIndex = 0;
+            TotalWaves = _waveData.waves?.Length ?? 0;
+            AliveEnemyCount = 0;
+            IsWaveCleared = false;
+            IsEncounterComplete = TotalWaves == 0;
         }
 
         /// <summary>
@@ -49,7 +60,34 @@ namespace CorgiCommando.Core
         /// </summary>
         public void SpawnCurrentWave()
         {
-            throw new NotImplementedException();
+            if (_waveData == null || IsEncounterComplete || CurrentWaveIndex < 0 || CurrentWaveIndex >= TotalWaves)
+            {
+                return;
+            }
+
+            var wave = _waveData.waves[CurrentWaveIndex];
+            AliveEnemyCount = 0;
+            IsWaveCleared = false;
+
+            if (wave?.spawnGroups != null)
+            {
+                foreach (var spawnGroup in wave.spawnGroups)
+                {
+                    if (spawnGroup == null)
+                    {
+                        continue;
+                    }
+
+                    AliveEnemyCount += Math.Max(0, spawnGroup.count);
+                }
+            }
+
+            OnWaveStarted?.Invoke(CurrentWaveIndex);
+
+            if (AliveEnemyCount == 0)
+            {
+                ClearCurrentWave();
+            }
         }
 
         /// <summary>
@@ -57,7 +95,16 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnEnemyDied()
         {
-            throw new NotImplementedException();
+            if (_waveData == null || IsEncounterComplete || IsWaveCleared || AliveEnemyCount <= 0)
+            {
+                return;
+            }
+
+            AliveEnemyCount--;
+            if (AliveEnemyCount == 0)
+            {
+                ClearCurrentWave();
+            }
         }
 
         /// <summary>
@@ -65,7 +112,44 @@ namespace CorgiCommando.Core
         /// </summary>
         public void AdvanceToNextWave()
         {
-            throw new NotImplementedException();
+            if (_waveData == null || IsEncounterComplete || !IsWaveCleared)
+            {
+                return;
+            }
+
+            CurrentWaveIndex++;
+
+            if (CurrentWaveIndex >= TotalWaves)
+            {
+                CompleteEncounter();
+                return;
+            }
+
+            AliveEnemyCount = 0;
+            IsWaveCleared = false;
+        }
+
+        private void ClearCurrentWave()
+        {
+            IsWaveCleared = true;
+            AliveEnemyCount = 0;
+            OnWaveCleared?.Invoke(CurrentWaveIndex);
+
+            if (CurrentWaveIndex >= TotalWaves - 1)
+            {
+                CompleteEncounter();
+            }
+        }
+
+        private void CompleteEncounter()
+        {
+            if (IsEncounterComplete)
+            {
+                return;
+            }
+
+            IsEncounterComplete = true;
+            OnEncounterComplete?.Invoke();
         }
     }
 }
