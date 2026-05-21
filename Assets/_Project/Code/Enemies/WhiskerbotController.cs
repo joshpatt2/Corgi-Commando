@@ -34,13 +34,20 @@ namespace CorgiCommando.Enemies
         /// <summary>Fired when the laser pointer activates.</summary>
         public event Action OnLaserActivated;
 
+        /// <summary>Fired when the laser pointer deactivates.</summary>
+        public event Action OnLaserDeactivated;
+
+        private EnemyData _data;
+
         /// <summary>
         /// Initializes the boss with its data.
         /// </summary>
         public void Initialize(EnemyData data)
         {
+            _data = data;
             TotalPhases = 3;
             CurrentPhase = 1;
+            AddEntityComponent(new HealthComponent(data.maxHP));
         }
 
         /// <summary>
@@ -82,6 +89,7 @@ namespace CorgiCommando.Enemies
         public void DeactivateLaser()
         {
             IsLaserActive = false;
+            OnLaserDeactivated?.Invoke();
         }
 
         /// <summary>
@@ -91,8 +99,10 @@ namespace CorgiCommando.Enemies
         public void EjectPilot()
         {
             var pilotGo = new GameObject("Maine Coon_Pilot");
+            pilotGo.transform.position = transform.position;
             var pilot = pilotGo.AddComponent<Entity>();
-            pilot.AddEntityComponent(new HealthComponent(100));
+            int pilotHP = _data.pilotMaxHP;
+            pilot.AddEntityComponent(new HealthComponent(pilotHP));
             PilotEntity = pilot;
             IsPilotEjected = true;
             OnPilotEjected?.Invoke();
@@ -103,7 +113,7 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Tick(float deltaTime)
         {
-            // Phase-specific AI is handled externally via phase events and scripted sequences.
+            // Intentionally empty: WHISKERBOT's behavior is driven by phase events and external UnityEvent scripts.
         }
     }
 }
