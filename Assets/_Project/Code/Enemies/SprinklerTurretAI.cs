@@ -1,3 +1,5 @@
+using System;
+
 namespace CorgiCommando.Enemies
 {
     /// <summary>
@@ -23,7 +25,7 @@ namespace CorgiCommando.Enemies
         {
             if (deltaTime < 0f)
             {
-                throw new System.ArgumentOutOfRangeException(nameof(deltaTime));
+                throw new ArgumentOutOfRangeException(nameof(deltaTime));
             }
 
             if (deltaTime == 0f || CurrentState == EnemyState.Dead)
