@@ -48,6 +48,16 @@ namespace CorgiCommando.Tests.EditMode
             UnityEngine.Object.DestroyImmediate(_catData);
             UnityEngine.Object.DestroyImmediate(_raccoonData);
             UnityEngine.Object.DestroyImmediate(_turretData);
+            CleanupSceneEntities();
+        }
+
+        private static void CleanupSceneEntities()
+        {
+            var entities = UnityEngine.Object.FindObjectsOfType<Entity>();
+            foreach (var entity in entities)
+            {
+                UnityEngine.Object.DestroyImmediate(entity.gameObject);
+            }
         }
 
         [Test]
@@ -418,6 +428,29 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(EnemyState.Chase, newState);
 
             UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void TearDown_EnsuresNoEntityLeaksBetweenTests()
+        {
+            // Arrange
+            new GameObject("Player").AddComponent<Entity>();
+            new GameObject("Enemy").AddComponent<Entity>();
+
+            try
+            {
+                Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>().Length, Is.EqualTo(2));
+
+                // Act
+                CleanupSceneEntities();
+
+                // Assert
+                Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>(), Is.Empty);
+            }
+            finally
+            {
+                CleanupSceneEntities();
+            }
         }
     }
 }
