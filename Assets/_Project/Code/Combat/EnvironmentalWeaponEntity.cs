@@ -41,7 +41,12 @@ namespace CorgiCommando.Combat
         /// </summary>
         public void Initialize(AttackData swingData, AttackData throwData, int maxUses)
         {
-            throw new NotImplementedException();
+            SwingAttackData = swingData;
+            ThrowAttackData = throwData;
+            RemainingUses = maxUses;
+            IsPickupable = true;
+            IsHeld = false;
+            Holder = null;
         }
 
         /// <summary>
@@ -49,7 +54,20 @@ namespace CorgiCommando.Combat
         /// </summary>
         public void Pickup(Entity holder)
         {
-            throw new NotImplementedException();
+            if (holder == null)
+            {
+                throw new ArgumentNullException(nameof(holder));
+            }
+
+            IsPickupable = false;
+            IsHeld = true;
+            Holder = holder;
+
+            var mover = holder.GetComponent<KinematicMovementController>();
+            if (mover != null)
+            {
+                mover.SpeedMultiplier = HeldSpeedMultiplier;
+            }
         }
 
         /// <summary>
@@ -58,16 +76,39 @@ namespace CorgiCommando.Combat
         /// <returns>The attack data for the swing, or null if broken.</returns>
         public AttackData Swing()
         {
-            throw new NotImplementedException();
+            if (RemainingUses <= 0)
+            {
+                return null;
+            }
+
+            RemainingUses--;
+
+            if (RemainingUses == 0)
+            {
+                Break();
+            }
+
+            return SwingAttackData;
         }
 
         /// <summary>
         /// Throws the weapon (heavy attack). Consumes the weapon immediately.
+        /// Returns null if the weapon is already broken (RemainingUses == 0).
         /// </summary>
-        /// <returns>The attack data for the throw.</returns>
+        /// <returns>The attack data for the throw, or null if already broken.</returns>
         public AttackData Throw()
         {
-            throw new NotImplementedException();
+            if (RemainingUses <= 0)
+            {
+                return null;
+            }
+
+            var data = ThrowAttackData;
+            ResetHolderSpeed();
+            RemainingUses = 0;
+            IsHeld = false;
+            Holder = null;
+            return data;
         }
 
         /// <summary>
@@ -75,7 +116,30 @@ namespace CorgiCommando.Combat
         /// </summary>
         public void Drop()
         {
-            throw new NotImplementedException();
+            ResetHolderSpeed();
+            IsHeld = false;
+            IsPickupable = true;
+            Holder = null;
+        }
+
+        private void Break()
+        {
+            ResetHolderSpeed();
+            Holder = null;
+            IsHeld = false;
+            OnWeaponBroken?.Invoke(this);
+        }
+
+        private void ResetHolderSpeed()
+        {
+            if (Holder != null)
+            {
+                var mover = Holder.GetComponent<KinematicMovementController>();
+                if (mover != null)
+                {
+                    mover.SpeedMultiplier = 1f;
+                }
+            }
         }
     }
 }

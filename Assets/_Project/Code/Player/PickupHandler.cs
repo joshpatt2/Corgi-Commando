@@ -11,6 +11,8 @@ namespace CorgiCommando.Player
     /// </summary>
     public class PickupHandler : MonoBehaviour
     {
+        private readonly Collider[] _overlapBuffer = new Collider[16];
+
         /// <summary>Maximum distance to pick up a weapon.</summary>
         public float PickupRange { get; set; } = 1.5f;
 
@@ -26,7 +28,32 @@ namespace CorgiCommando.Player
         /// </summary>
         public bool TryPickup(Entity holder)
         {
-            throw new NotImplementedException();
+            int count = Physics.OverlapSphereNonAlloc(transform.position, PickupRange, _overlapBuffer);
+            EnvironmentalWeaponEntity nearest = null;
+            float nearestSqrDist = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                var weapon = _overlapBuffer[i].GetComponent<EnvironmentalWeaponEntity>();
+                if (weapon != null && weapon.IsPickupable)
+                {
+                    float sqrDist = (transform.position - _overlapBuffer[i].transform.position).sqrMagnitude;
+                    if (sqrDist < nearestSqrDist)
+                    {
+                        nearestSqrDist = sqrDist;
+                        nearest = weapon;
+                    }
+                }
+            }
+
+            if (nearest == null)
+            {
+                return false;
+            }
+
+            nearest.Pickup(holder);
+            HeldWeapon = nearest;
+            return true;
         }
 
         /// <summary>
@@ -34,7 +61,11 @@ namespace CorgiCommando.Player
         /// </summary>
         public void UseSwing()
         {
-            throw new NotImplementedException();
+            HeldWeapon?.Swing();
+            if (HeldWeapon != null && !HeldWeapon.IsHeld)
+            {
+                HeldWeapon = null;
+            }
         }
 
         /// <summary>
@@ -42,7 +73,8 @@ namespace CorgiCommando.Player
         /// </summary>
         public void UseThrow()
         {
-            throw new NotImplementedException();
+            HeldWeapon?.Throw();
+            HeldWeapon = null;
         }
 
         /// <summary>
@@ -50,7 +82,8 @@ namespace CorgiCommando.Player
         /// </summary>
         public void DropWeapon()
         {
-            throw new NotImplementedException();
+            HeldWeapon?.Drop();
+            HeldWeapon = null;
         }
     }
 }
