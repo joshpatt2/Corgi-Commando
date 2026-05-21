@@ -41,14 +41,12 @@ namespace CorgiCommando.Enemies
 
         protected override void OnStateTransitioned(EnemyState oldState, EnemyState newState)
         {
-            if (newState != EnemyState.Dead || !IsCarryingTreats || StolenTreatsAmount <= 0)
+            if (newState == EnemyState.Dead && IsCarryingTreats && StolenTreatsAmount > 0)
             {
-                return;
+                OnDroppedTreats?.Invoke(StolenTreatsAmount);
+                IsCarryingTreats = false;
+                StolenTreatsAmount = 0;
             }
-
-            OnDroppedTreats?.Invoke(StolenTreatsAmount);
-            IsCarryingTreats = false;
-            StolenTreatsAmount = 0;
         }
     }
 }

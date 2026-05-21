@@ -10,13 +10,17 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class AggroSlotManager
     {
-        private static AggroSlotManager _latestManager;
+        private static readonly List<AggroSlotManager> ActiveManagers = new List<AggroSlotManager>();
+        private static readonly Dictionary<EnemyAI, AggroSlotManager> ReservationOwner = new Dictionary<EnemyAI, AggroSlotManager>();
         private readonly Dictionary<Entity, List<EnemyAI>> _slotsByTarget = new Dictionary<Entity, List<EnemyAI>>();
         private readonly Dictionary<EnemyAI, Entity> _targetByEnemy = new Dictionary<EnemyAI, Entity>();
 
         public AggroSlotManager()
         {
-            _latestManager = this;
+            if (!ActiveManagers.Contains(this))
+            {
+                ActiveManagers.Add(this);
+            }
         }
 
         /// <summary>Maximum number of attackers per player target (default 2).</summary>
@@ -42,6 +46,15 @@ namespace CorgiCommando.Enemies
 
                 ReleaseSlot(enemy);
             }
+            else if (ReservationOwner.TryGetValue(enemy, out var owner))
+            {
+                if (!HasAvailableSlot(target))
+                {
+                    return false;
+                }
+
+                owner.ReleaseSlot(enemy);
+            }
 
             if (!_slotsByTarget.TryGetValue(target, out var attackers))
             {
@@ -56,6 +69,7 @@ namespace CorgiCommando.Enemies
 
             attackers.Add(enemy);
             _targetByEnemy[enemy] = target;
+            ReservationOwner[enemy] = this;
             enemy.SetAggroSlotStatus(true);
             return true;
         }
@@ -72,12 +86,16 @@ namespace CorgiCommando.Enemies
 
             if (!_targetByEnemy.TryGetValue(enemy, out var target))
             {
+                ReservationOwner.Remove(enemy);
+                enemy.SetAggroSlotStatus(false);
                 return;
             }
 
             _targetByEnemy.Remove(enemy);
+            ReservationOwner.Remove(enemy);
             if (!_slotsByTarget.TryGetValue(target, out var attackers))
             {
+                enemy.SetAggroSlotStatus(false);
                 return;
             }
 
@@ -116,23 +134,56 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void ClearAll()
         {
+            var reservedEnemies = new List<EnemyAI>(_targetByEnemy.Keys);
+            foreach (var enemy in reservedEnemies)
+            {
+                ReservationOwner.Remove(enemy);
+                enemy.SetAggroSlotStatus(false);
+            }
+
             _slotsByTarget.Clear();
             _targetByEnemy.Clear();
         }
 
-        internal static void ReleaseSlotFromAllManagers(EnemyAI enemy)
+        internal static void ReleaseSlotForEnemy(EnemyAI enemy)
         {
-            _latestManager?.ReleaseSlot(enemy);
+            if (enemy == null)
+            {
+                return;
+            }
+
+            if (ReservationOwner.TryGetValue(enemy, out var owner))
+            {
+                owner.ReleaseSlot(enemy);
+            }
         }
 
         internal static bool TryReserveAny(EnemyAI enemy, Entity target)
         {
-            return _latestManager != null && _latestManager.TryReserveSlot(enemy, target);
+            if (enemy == null || target == null)
+            {
+                return false;
+            }
+
+            if (ReservationOwner.TryGetValue(enemy, out var owner))
+            {
+                return owner.TryReserveSlot(enemy, target);
+            }
+
+            for (int i = ActiveManagers.Count - 1; i >= 0; i--)
+            {
+                if (ActiveManagers[i].TryReserveSlot(enemy, target))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal static bool HasActiveManager()
         {
-            return _latestManager != null;
+            return ActiveManagers.Count > 0;
         }
     }
 }

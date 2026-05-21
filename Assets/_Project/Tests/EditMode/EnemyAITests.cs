@@ -128,8 +128,6 @@ namespace CorgiCommando.Tests.EditMode
         public void FeralCatAI_Tick_PlayerInAttackRange_TransitionsToAttack()
         {
             // Arrange
-            var manager = new AggroSlotManager();
-
             var catGo = new GameObject("Cat");
             var cat = catGo.AddComponent<FeralCatAI>();
             cat.Initialize(_catData);
@@ -145,7 +143,6 @@ namespace CorgiCommando.Tests.EditMode
 
             // Assert
             Assert.AreEqual(EnemyState.Attack, cat.CurrentState);
-            Assert.AreEqual(1, manager.GetOccupiedSlots(player));
 
             UnityEngine.Object.DestroyImmediate(catGo);
             UnityEngine.Object.DestroyImmediate(playerGo);

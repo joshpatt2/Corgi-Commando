@@ -11,6 +11,8 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class EnemyAI : Entity
     {
+        private float _targetSearchTimer;
+
         /// <summary>Current FSM state.</summary>
         public EnemyState CurrentState { get; protected set; }
 
@@ -62,7 +64,7 @@ namespace CorgiCommando.Enemies
             CurrentState = newState;
             if (newState == EnemyState.Stunned || newState == EnemyState.Dead)
             {
-                AggroSlotManager.ReleaseSlotFromAllManagers(this);
+                AggroSlotManager.ReleaseSlotForEnemy(this);
                 HasAggroSlot = false;
             }
 
@@ -76,7 +78,12 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public virtual void Tick(float deltaTime)
         {
-            if (deltaTime <= 0f || CurrentState == EnemyState.Dead)
+            if (deltaTime < 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(deltaTime));
+            }
+
+            if (deltaTime == 0f || CurrentState == EnemyState.Dead)
             {
                 return;
             }
@@ -99,7 +106,13 @@ namespace CorgiCommando.Enemies
                 return;
             }
 
-            CurrentTarget = FindClosestPlayerTarget();
+            _targetSearchTimer -= deltaTime;
+            if (CurrentTarget == null || !CurrentTarget.IsAlive || CurrentTarget.Faction != Faction.Player || _targetSearchTimer <= 0f)
+            {
+                CurrentTarget = FindClosestPlayerTarget();
+                _targetSearchTimer = 0.25f;
+            }
+
             if (CurrentTarget == null || Data == null)
             {
                 return;
@@ -177,7 +190,7 @@ namespace CorgiCommando.Enemies
             for (int i = 0; i < entities.Length; i++)
             {
                 var candidate = entities[i];
-                if (candidate == null || candidate == this || !candidate.IsAlive || candidate is EnemyAI)
+                if (candidate == null || candidate == this || !candidate.IsAlive)
                 {
                     continue;
                 }
