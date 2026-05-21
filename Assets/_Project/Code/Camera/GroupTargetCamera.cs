@@ -107,6 +107,7 @@ namespace CorgiCommando.Camera
 
         public void Tick(float deltaTime)
         {
+            _ = deltaTime;
             bool isOverCap = _targets.Count >= 2 && GetPlayerDistance() > MaxPlayerDistance;
             if (isOverCap && !_wasOverCap)
                 OnDistanceCapReached?.Invoke();
