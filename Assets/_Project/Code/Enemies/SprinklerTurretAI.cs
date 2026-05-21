@@ -36,7 +36,6 @@ namespace CorgiCommando.Enemies
                     IsTelegraphing = false;
                     _telegraphTimer = 0f;
                     TransitionTo(EnemyState.Attack);
-                    _cooldownTimer = 0f;
                 }
 
                 return;
@@ -45,6 +44,7 @@ namespace CorgiCommando.Enemies
             if (CurrentState == EnemyState.Attack)
             {
                 TransitionTo(EnemyState.Idle);
+                _cooldownTimer = 0f;
             }
 
             _cooldownTimer += deltaTime;
@@ -52,7 +52,6 @@ namespace CorgiCommando.Enemies
             {
                 IsTelegraphing = true;
                 _telegraphTimer = 0f;
-                TransitionTo(EnemyState.Idle);
             }
         }
     }
