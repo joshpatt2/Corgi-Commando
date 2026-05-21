@@ -129,5 +129,22 @@ namespace CorgiCommando.Tests.EditMode
             // Assert — holding a weapon should slow movement
             Assert.Less(_weapon.HeldSpeedMultiplier, 1f);
         }
+
+        [Test]
+        public void Drop_RestoresPickupableState()
+        {
+            // Arrange
+            _weapon.Pickup(_holder);
+            Assert.IsTrue(_weapon.IsHeld);
+            Assert.IsFalse(_weapon.IsPickupable);
+
+            // Act
+            _weapon.Drop();
+
+            // Assert
+            Assert.IsFalse(_weapon.IsHeld);
+            Assert.IsNull(_weapon.Holder);
+            Assert.IsTrue(_weapon.IsPickupable);
+        }
     }
 }

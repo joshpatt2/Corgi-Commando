@@ -11,7 +11,7 @@ namespace CorgiCommando.Player
     /// </summary>
     public class PickupHandler : MonoBehaviour
     {
-        private static readonly Collider[] _overlapBuffer = new Collider[16];
+        private readonly Collider[] _overlapBuffer = new Collider[16];
 
         /// <summary>Maximum distance to pick up a weapon.</summary>
         public float PickupRange { get; set; } = 1.5f;

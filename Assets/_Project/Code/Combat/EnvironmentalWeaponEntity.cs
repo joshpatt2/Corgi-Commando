@@ -54,6 +54,11 @@ namespace CorgiCommando.Combat
         /// </summary>
         public void Pickup(Entity holder)
         {
+            if (holder == null)
+            {
+                throw new ArgumentNullException(nameof(holder));
+            }
+
             IsPickupable = false;
             IsHeld = true;
             Holder = holder;
@@ -88,10 +93,16 @@ namespace CorgiCommando.Combat
 
         /// <summary>
         /// Throws the weapon (heavy attack). Consumes the weapon immediately.
+        /// Returns null if the weapon is already broken (RemainingUses == 0).
         /// </summary>
-        /// <returns>The attack data for the throw.</returns>
+        /// <returns>The attack data for the throw, or null if already broken.</returns>
         public AttackData Throw()
         {
+            if (RemainingUses <= 0)
+            {
+                return null;
+            }
+
             var data = ThrowAttackData;
             ResetHolderSpeed();
             RemainingUses = 0;
