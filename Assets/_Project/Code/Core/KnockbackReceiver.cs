@@ -22,12 +22,13 @@ namespace CorgiCommando.Core
 
         public void OnAttach(Entity owner)
         {
-            throw new NotImplementedException();
+            Owner = owner;
         }
 
         public void OnDetach()
         {
-            throw new NotImplementedException();
+            Owner = null;
+            ClearKnockback();
         }
 
         /// <summary>
@@ -36,7 +37,9 @@ namespace CorgiCommando.Core
         /// <param name="impulse">Velocity impulse vector (X, Y, Z).</param>
         public void ApplyKnockback(Vector3 impulse)
         {
-            throw new NotImplementedException();
+            KnockbackVelocity = impulse;
+            IsInKnockback = true;
+            OnKnockbackApplied?.Invoke(impulse);
         }
 
         /// <summary>
@@ -44,7 +47,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public void ClearKnockback()
         {
-            throw new NotImplementedException();
+            KnockbackVelocity = Vector3.zero;
+            IsInKnockback = false;
         }
     }
 }
