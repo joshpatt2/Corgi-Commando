@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 using CorgiCommando.UI;
 
 namespace CorgiCommando.Tests.EditMode
@@ -83,6 +84,25 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void BossBannerUI_UpdateHP_StoresValues()
+        {
+            // Arrange
+            var go = new GameObject("BossBanner");
+            go.AddComponent<RectTransform>();
+            var banner = go.AddComponent<BossBannerUI>();
+            banner.Show("WHISKERBOT-9000", 200, 200);
+
+            // Act
+            banner.UpdateHP(75, 120);
+
+            // Assert
+            Assert.AreEqual(75, banner.CurrentHP);
+            Assert.AreEqual(120, banner.MaxHP);
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
         public void HUDController_TogglePause_SetsIsPaused()
         {
             // Arrange
@@ -124,6 +144,58 @@ namespace CorgiCommando.Tests.EditMode
 
             // Assert — safe area not applied until ApplySafeArea() is called
             Assert.IsFalse(hud.IsSafeAreaApplied());
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HUDController_UpdateHealthBar_StoresPerPlayerState()
+        {
+            // Arrange
+            var go = new GameObject("HUD");
+            var hud = go.AddComponent<HUDController>();
+
+            // Act
+            hud.UpdateHealthBar(0, 65, 100);
+            hud.UpdateHealthBar(1, 42, 80);
+
+            // Assert
+            Assert.AreEqual(65, hud.GetCurrentHealth(0));
+            Assert.AreEqual(100, hud.GetMaxHealth(0));
+            Assert.AreEqual(42, hud.GetCurrentHealth(1));
+            Assert.AreEqual(80, hud.GetMaxHealth(1));
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HUDController_UpdateSpecialMeter_ClampsToMax()
+        {
+            // Arrange
+            var go = new GameObject("HUD");
+            var hud = go.AddComponent<HUDController>();
+
+            // Act
+            hud.UpdateSpecialMeter(0, 150f, 100f);
+
+            // Assert
+            Assert.AreEqual(100f, hud.GetCurrentSpecialMeter(0));
+            Assert.AreEqual(100f, hud.GetMaxSpecialMeter(0));
+
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void HUDController_Awake_CreatesVisualElements()
+        {
+            // Arrange
+            var go = new GameObject("HUD");
+            go.AddComponent<HUDController>();
+
+            // Assert
+            Assert.Greater(go.GetComponentsInChildren<Image>(true).Length, 0);
+            Assert.NotNull(go.GetComponentInChildren<ComboCounterUI>(true));
+            Assert.NotNull(go.GetComponentInChildren<BossBannerUI>(true));
 
             UnityEngine.Object.DestroyImmediate(go);
         }
