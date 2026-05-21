@@ -153,12 +153,12 @@ namespace CorgiCommando.Tests.EditMode
         [Test]
         public void UseSpecial_WithFullMeter_ConsumesAndReturnsTrue()
         {
-            // Arrange — fill meter to max through backing field (combat fills this at runtime)
-            var specialMeterField = typeof(CorgiController).GetField(
-                "<SpecialMeter>k__BackingField",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(specialMeterField);
-            specialMeterField.SetValue(_player, _corgiData.maxSpecialMeter);
+            // Arrange — fill meter through the non-public property setter (combat fills this at runtime)
+            var specialMeterProperty = typeof(CorgiController).GetProperty(nameof(CorgiController.SpecialMeter));
+            Assert.NotNull(specialMeterProperty);
+            var setSpecialMeter = specialMeterProperty.GetSetMethod(true);
+            Assert.NotNull(setSpecialMeter);
+            setSpecialMeter.Invoke(_player, new object[] { _corgiData.maxSpecialMeter });
 
             // Meter readiness is computed by UseSpecial() from current meter/data.
             bool result = _player.UseSpecial();
