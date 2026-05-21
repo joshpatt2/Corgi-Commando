@@ -39,7 +39,8 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Initialize(EnemyData data)
         {
-            throw new NotImplementedException();
+            TotalPhases = 3;
+            CurrentPhase = 1;
         }
 
         /// <summary>
@@ -48,7 +49,21 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public override void CheckPhaseTransition(int currentHP, int maxHP)
         {
-            throw new NotImplementedException();
+            if (maxHP <= 0)
+            {
+                return;
+            }
+
+            float ratio = (float)currentHP / maxHP;
+
+            if (CurrentPhase == 1 && ratio <= Phase2Threshold)
+            {
+                TransitionToPhase(2);
+            }
+            else if (CurrentPhase == 2 && ratio <= Phase3Threshold)
+            {
+                TransitionToPhase(3);
+            }
         }
 
         /// <summary>
@@ -57,7 +72,8 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void ActivateLaser()
         {
-            throw new NotImplementedException();
+            IsLaserActive = true;
+            OnLaserActivated?.Invoke();
         }
 
         /// <summary>
@@ -65,7 +81,7 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void DeactivateLaser()
         {
-            throw new NotImplementedException();
+            IsLaserActive = false;
         }
 
         /// <summary>
@@ -74,7 +90,12 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void EjectPilot()
         {
-            throw new NotImplementedException();
+            var pilotGo = new GameObject("Maine Coon_Pilot");
+            var pilot = pilotGo.AddComponent<Entity>();
+            pilot.AddEntityComponent(new HealthComponent(100));
+            PilotEntity = pilot;
+            IsPilotEjected = true;
+            OnPilotEjected?.Invoke();
         }
 
         /// <summary>
@@ -82,7 +103,7 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            // Phase-specific AI is handled externally via phase events and scripted sequences.
         }
     }
 }

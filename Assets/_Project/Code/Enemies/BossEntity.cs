@@ -25,7 +25,7 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public virtual void CheckPhaseTransition(int currentHP, int maxHP)
         {
-            throw new NotImplementedException();
+            // Base implementation is a no-op; subclasses override with specific thresholds.
         }
 
         /// <summary>
@@ -33,7 +33,9 @@ namespace CorgiCommando.Enemies
         /// </summary>
         protected void TransitionToPhase(int newPhase)
         {
-            throw new NotImplementedException();
+            int oldPhase = CurrentPhase;
+            CurrentPhase = newPhase;
+            OnPhaseChanged?.Invoke(oldPhase, newPhase);
         }
     }
 }
