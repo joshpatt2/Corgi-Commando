@@ -113,5 +113,48 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(knockback.x, _mover.Velocity.x, 0.01f);
             Assert.AreEqual(knockback.y, _mover.Velocity.y, 0.01f);
         }
+
+        [Test]
+        public void ApplyExternalVelocity_WhenTicked_PreservesKnockbackDirection()
+        {
+            // Arrange
+            var knockback = new Vector3(-5f, 3f, 0f);
+            _mover.ApplyExternalVelocity(knockback);
+
+            // Act
+            _mover.Tick(1f / 60f);
+
+            // Assert
+            Assert.Less(_mover.Velocity.x, 0f);
+        }
+
+        [Test]
+        public void Jump_WhenAirborne_DoesNotChangeYVelocity()
+        {
+            // Arrange
+            _go.transform.position = new Vector3(0f, 5f, 0f);
+            var initialYVelocity = _mover.Velocity.y;
+
+            // Act
+            _mover.Jump();
+
+            // Assert
+            Assert.AreEqual(initialYVelocity, _mover.Velocity.y, 0.01f);
+        }
+
+        [Test]
+        public void Tick_WhenLanding_SetsGroundedAndClearsJumping()
+        {
+            // Arrange
+            _mover.Jump();
+
+            // Act
+            _mover.Tick(1f);
+
+            // Assert
+            Assert.IsTrue(_mover.IsGrounded);
+            Assert.IsFalse(_mover.IsJumping);
+            Assert.AreEqual(0f, _mover.Velocity.y, 0.01f);
+        }
     }
 }

@@ -6,18 +6,20 @@ namespace CorgiCommando.Core
     /// Custom kinematic 2.5D movement controller.
     /// X = horizontal, Z = depth into screen, Y = jump only (gravity-driven).
     /// Does NOT use Rigidbody2D dynamics — transform.position += velocity * dt.
-    /// Grounded checks via raycast or overlap.
+    /// Grounded checks use prototype ground plane Y=0.
     /// </summary>
     public class KinematicMovementController : MonoBehaviour
     {
         private const float GroundPlaneY = 0f;
+        private const float ExternalVelocityDecayPerSecond = 30f;
         private Vector2 _moveInput;
+        private Vector3 _externalVelocity;
 
         /// <summary>Current velocity vector (X, Y, Z).</summary>
         public Vector3 Velocity { get; private set; }
 
         /// <summary>Whether the entity is on the ground.</summary>
-        public bool IsGrounded { get; private set; }
+        public bool IsGrounded { get; private set; } = true;
 
         /// <summary>Whether the entity is currently jumping.</summary>
         public bool IsJumping { get; private set; }
@@ -41,7 +43,7 @@ namespace CorgiCommando.Core
         /// Sets the desired movement input. Called each frame by the player controller
         /// or AI controller. X = horizontal, Y = depth (mapped to Z in world).
         /// </summary>
-        /// <param name="input">Normalized 2D input vector.</param>
+        /// <param name="input">2D input vector.</param>
         public void SetMoveInput(Vector2 input)
         {
             _moveInput = input;
@@ -52,9 +54,9 @@ namespace CorgiCommando.Core
         /// </summary>
         public void Jump()
         {
-            IsGrounded = CheckGrounded();
-            if (!IsGrounded)
+            if (!CheckGrounded())
             {
+                IsGrounded = false;
                 return;
             }
 
@@ -68,13 +70,9 @@ namespace CorgiCommando.Core
         /// </summary>
         public void ApplyExternalVelocity(Vector3 velocity)
         {
+            _externalVelocity = velocity;
             Velocity = velocity;
-
-            if (velocity.y > 0f)
-            {
-                IsGrounded = false;
-                IsJumping = true;
-            }
+            IsGrounded = CheckGrounded() && velocity.y <= 0f;
         }
 
         /// <summary>
@@ -84,12 +82,17 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(float deltaTime)
         {
-            var groundedAtStart = transform.position.y <= GroundPlaneY + Mathf.Epsilon;
+            var groundedAtStart = IsGrounded;
 
             Velocity = new Vector3(
                 _moveInput.x * WalkSpeed * SpeedMultiplier,
                 Velocity.y,
                 _moveInput.y * DepthSpeed * SpeedMultiplier);
+
+            Velocity = new Vector3(
+                Velocity.x + _externalVelocity.x,
+                Velocity.y,
+                Velocity.z + _externalVelocity.z);
 
             if (!groundedAtStart)
             {
@@ -110,6 +113,11 @@ namespace CorgiCommando.Core
                 Velocity = new Vector3(Velocity.x, 0f, Velocity.z);
                 IsJumping = false;
             }
+
+            _externalVelocity = Vector3.MoveTowards(
+                _externalVelocity,
+                Vector3.zero,
+                ExternalVelocityDecayPerSecond * deltaTime);
         }
 
         /// <summary>
