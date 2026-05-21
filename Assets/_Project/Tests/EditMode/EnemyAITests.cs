@@ -441,6 +441,8 @@ namespace CorgiCommando.Tests.EditMode
 
             try
             {
+                Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>().Length, Is.GreaterThanOrEqualTo(2));
+
                 // Act
                 CleanupSceneEntities();
 
@@ -449,6 +451,7 @@ namespace CorgiCommando.Tests.EditMode
             }
             finally
             {
+                // Defensive cleanup to avoid cross-test leaks if this test fails before or during assertions.
                 if (playerGo != null)
                 {
                     UnityEngine.Object.DestroyImmediate(playerGo);
