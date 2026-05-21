@@ -149,7 +149,11 @@ namespace CorgiCommando.Tests.EditMode
             _mover.Jump();
 
             // Act
-            _mover.Tick(1f);
+            const float dt = 1f / 60f;
+            for (int i = 0; i < 120 && !_mover.IsGrounded; i++)
+            {
+                _mover.Tick(dt);
+            }
 
             // Assert
             Assert.IsTrue(_mover.IsGrounded);

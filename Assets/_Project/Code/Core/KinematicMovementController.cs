@@ -85,14 +85,9 @@ namespace CorgiCommando.Core
             var groundedAtStart = IsGrounded;
 
             Velocity = new Vector3(
-                _moveInput.x * WalkSpeed * SpeedMultiplier,
+                (_moveInput.x * WalkSpeed * SpeedMultiplier) + _externalVelocity.x,
                 Velocity.y,
-                _moveInput.y * DepthSpeed * SpeedMultiplier);
-
-            Velocity = new Vector3(
-                Velocity.x + _externalVelocity.x,
-                Velocity.y,
-                Velocity.z + _externalVelocity.z);
+                (_moveInput.y * DepthSpeed * SpeedMultiplier) + _externalVelocity.z);
 
             if (!groundedAtStart)
             {
