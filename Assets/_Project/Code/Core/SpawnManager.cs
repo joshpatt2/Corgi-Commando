@@ -110,6 +110,11 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnEnemyDied()
         {
+            HandleEnemyDiedCount();
+        }
+
+        private void HandleEnemyDiedCount()
+        {
             if (_waveData == null || IsEncounterComplete || IsWaveCleared || AliveEnemyCount <= 0)
             {
                 return;
@@ -145,7 +150,7 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            OnEnemyDied();
+            HandleEnemyDiedCount();
             OnEnemyDeath?.Invoke(enemy);
         }
 
