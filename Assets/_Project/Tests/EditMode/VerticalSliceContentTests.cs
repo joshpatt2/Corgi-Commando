@@ -30,13 +30,13 @@ namespace CorgiCommando.Tests.EditMode
             var sarge = AssetDatabase.LoadAssetAtPath<CorgiData>(SargePath);
 
             Assert.That(sarge, Is.Not.Null);
-            Assert.That(sarge.maxHP, Is.Not.EqualTo(100));
-            Assert.That(sarge.walkSpeed, Is.Not.EqualTo(5f));
-            Assert.That(sarge.depthSpeed, Is.Not.EqualTo(3f));
-            Assert.That(sarge.jumpForce, Is.Not.EqualTo(10f));
-            Assert.That(sarge.maxSpecialMeter, Is.Not.EqualTo(100f));
-            Assert.That(sarge.specialGainPerHit, Is.Not.EqualTo(10f));
-            Assert.That(sarge.specialDecayRate, Is.Not.EqualTo(5f));
+            Assert.That(sarge.maxHP, Is.EqualTo(120));
+            Assert.That(sarge.walkSpeed, Is.EqualTo(5.5f));
+            Assert.That(sarge.depthSpeed, Is.EqualTo(3.25f));
+            Assert.That(sarge.jumpForce, Is.EqualTo(11f));
+            Assert.That(sarge.maxSpecialMeter, Is.EqualTo(120f));
+            Assert.That(sarge.specialGainPerHit, Is.EqualTo(12f));
+            Assert.That(sarge.specialDecayRate, Is.EqualTo(4f));
             Assert.That(sarge.comboChain, Is.Not.Null);
             Assert.That(sarge.comboChain.Length, Is.EqualTo(3));
             Assert.That(sarge.comboChain[0], Is.Not.Null);
