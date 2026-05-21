@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -11,6 +10,9 @@ namespace CorgiCommando.Core
     /// </summary>
     public class KinematicMovementController : MonoBehaviour
     {
+        private const float GroundPlaneY = 0f;
+        private Vector2 _moveInput;
+
         /// <summary>Current velocity vector (X, Y, Z).</summary>
         public Vector3 Velocity { get; private set; }
 
@@ -42,7 +44,7 @@ namespace CorgiCommando.Core
         /// <param name="input">Normalized 2D input vector.</param>
         public void SetMoveInput(Vector2 input)
         {
-            throw new NotImplementedException();
+            _moveInput = input;
         }
 
         /// <summary>
@@ -50,7 +52,14 @@ namespace CorgiCommando.Core
         /// </summary>
         public void Jump()
         {
-            throw new NotImplementedException();
+            if (!CheckGrounded())
+            {
+                return;
+            }
+
+            Velocity = new Vector3(Velocity.x, JumpForce, Velocity.z);
+            IsGrounded = false;
+            IsJumping = true;
         }
 
         /// <summary>
@@ -58,7 +67,13 @@ namespace CorgiCommando.Core
         /// </summary>
         public void ApplyExternalVelocity(Vector3 velocity)
         {
-            throw new NotImplementedException();
+            Velocity = velocity;
+
+            if (velocity.y > 0f)
+            {
+                IsGrounded = false;
+                IsJumping = true;
+            }
         }
 
         /// <summary>
@@ -68,7 +83,25 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            CheckGrounded();
+
+            Velocity = new Vector3(
+                _moveInput.x * WalkSpeed * SpeedMultiplier,
+                Velocity.y,
+                _moveInput.y * DepthSpeed * SpeedMultiplier);
+
+            if (!IsGrounded)
+            {
+                Velocity = new Vector3(Velocity.x, Velocity.y - (Gravity * deltaTime), Velocity.z);
+            }
+
+            transform.position += Velocity * deltaTime;
+
+            if (CheckGrounded())
+            {
+                Velocity = new Vector3(Velocity.x, 0f, Velocity.z);
+                IsJumping = false;
+            }
         }
 
         /// <summary>
@@ -76,7 +109,17 @@ namespace CorgiCommando.Core
         /// </summary>
         public bool CheckGrounded()
         {
-            throw new NotImplementedException();
+            var position = transform.position;
+            var grounded = position.y <= GroundPlaneY;
+
+            if (grounded && position.y != GroundPlaneY)
+            {
+                position.y = GroundPlaneY;
+                transform.position = position;
+            }
+
+            IsGrounded = grounded;
+            return grounded;
         }
     }
 }
