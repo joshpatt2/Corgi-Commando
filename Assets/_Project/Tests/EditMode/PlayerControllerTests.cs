@@ -153,19 +153,83 @@ namespace CorgiCommando.Tests.EditMode
         [Test]
         public void UseSpecial_WithFullMeter_ConsumesAndReturnsTrue()
         {
-            // Arrange — fill the meter
-            // Design intent: UseSpecial requires the meter to be at max capacity
-            // For testing, we directly test the method contract. Implementation
-            // must check SpecialMeter >= specialCost before consuming.
+            // Arrange — fill meter through public gameplay API
+            _player.AddSpecialMeter(_corgiData.maxSpecialMeter);
 
-            // This test will work once SpecialMeter can be set/filled.
-            // The combat system fills it via AddSpecialMeter.
-            // For the stub test, we verify the contract:
-            // UseSpecial returns false if meter is not full.
+            // Meter readiness is computed by UseSpecial() from current meter/data.
             bool result = _player.UseSpecial();
 
-            // Assert — should fail because meter starts at 0
-            Assert.IsFalse(result);
+            // Assert
+            Assert.IsTrue(result);
+            Assert.AreEqual(0f, _player.SpecialMeter);
+            Assert.AreEqual(CorgiState.Special, _player.CurrentState);
+        }
+
+        [Test]
+        public void AddSpecialMeter_WhenCalled_ClampsToMaxAndMarksSpecialReady()
+        {
+            // Act
+            _player.AddSpecialMeter(_corgiData.maxSpecialMeter + 50f);
+
+            // Assert
+            Assert.AreEqual(_corgiData.maxSpecialMeter, _player.SpecialMeter);
+            Assert.IsTrue(_player.IsSpecialReady);
+        }
+
+        [Test]
+        public void AddSpecialMeter_WithNegativeAmount_Throws()
+        {
+            // Act / Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => _player.AddSpecialMeter(-1f));
+        }
+
+        [Test]
+        public void Initialize_WithInvalidPlayerIndex_Throws()
+        {
+            // Arrange
+            var otherGo = new GameObject("OtherPlayer");
+            var otherPlayer = otherGo.AddComponent<CorgiController>();
+
+            try
+            {
+                // Act / Assert
+                Assert.Throws<ArgumentOutOfRangeException>(() => otherPlayer.Initialize(_corgiData, _inputBuffer, 2));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(otherGo);
+            }
+        }
+
+        [Test]
+        public void Tick_WithMoveInput_DelegatesToMovementController()
+        {
+            // Arrange
+            var movement = _playerGo.AddComponent<KinematicMovementController>();
+            // Re-initialize so CorgiController can cache the movement component added by this test.
+            _player.Initialize(_corgiData, _inputBuffer, 0);
+            _inputBuffer.RecordInput(InputAction.MoveRight, 0f, new Vector2(1f, 0f));
+
+            // Act
+            _player.Tick(1f / 60f);
+
+            // Assert
+            Assert.Greater(movement.Velocity.x, 0f);
+            Assert.AreEqual(CorgiState.Walk, _player.CurrentState);
+        }
+
+        [Test]
+        public void Tick_WhenNotAttacking_DecaysSpecialMeter()
+        {
+            // Arrange
+            _player.AddSpecialMeter(50f);
+            _corgiData.specialDecayRate = 5f;
+
+            // Act
+            _player.Tick(1f);
+
+            // Assert
+            Assert.AreEqual(45f, _player.SpecialMeter, 0.01f);
         }
 
         [Test]
