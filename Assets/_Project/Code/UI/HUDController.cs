@@ -84,7 +84,7 @@ namespace CorgiCommando.UI
         /// </summary>
         public void ApplySafeArea()
         {
-            var rectTransform = _cachedRectTransform != null ? _cachedRectTransform : GetComponent<RectTransform>();
+            var rectTransform = _cachedRectTransform;
             if (rectTransform != null && Screen.width > 0 && Screen.height > 0)
             {
                 Rect safeArea = Screen.safeArea;
@@ -97,10 +97,11 @@ namespace CorgiCommando.UI
                 rectTransform.anchorMin = anchorMin;
                 rectTransform.anchorMax = anchorMax;
                 _isSafeAreaApplied = true;
-                return;
             }
-
-            _isSafeAreaApplied = false;
+            else
+            {
+                _isSafeAreaApplied = false;
+            }
         }
 
         /// <summary>
