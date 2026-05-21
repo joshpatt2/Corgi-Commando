@@ -110,5 +110,74 @@ namespace CorgiCommando.Tests.PlayMode
             // Assert
             Assert.IsFalse(_camera.IsArenaLocked);
         }
+
+        [Test]
+        public void AddTarget_Duplicate_CountRemainsOne()
+        {
+            // Act
+            _camera.AddTarget(_player1.transform);
+            _camera.AddTarget(_player1.transform);
+
+            // Assert — duplicate is ignored; distance is 0 because only one unique target
+            Assert.AreEqual(0f, _camera.GetPlayerDistance());
+        }
+
+        [UnityTest]
+        public IEnumerator DistanceCap_ExceedsMax_FiresEventOnce()
+        {
+            // Arrange
+            _camera.MaxPlayerDistance = 10f;
+            _camera.AddTarget(_player1.transform);
+            _camera.AddTarget(_player2.transform);
+            int fireCount = 0;
+            _camera.OnDistanceCapReached += () => fireCount++;
+
+            // Act — move player beyond the cap and wait two frames
+            _player2.transform.position = new Vector3(15f, 0f, 0f);
+            yield return null; // Update: crossing threshold → fires once
+            yield return null; // Update: still over cap → must NOT fire again
+
+            // Assert
+            Assert.AreEqual(1, fireCount);
+        }
+
+        [Test]
+        public void ArenaCameraLock_Activate_LocksCamera()
+        {
+            // Arrange
+            var lockGo = new GameObject("ArenaLock");
+            var arenaLock = lockGo.AddComponent<ArenaCameraLock>();
+            arenaLock.ArenaMinX = -5f;
+            arenaLock.ArenaMaxX = 5f;
+
+            // Act
+            arenaLock.Activate(_camera);
+
+            // Assert
+            Assert.IsTrue(_camera.IsArenaLocked);
+            Assert.IsTrue(arenaLock.IsActive);
+
+            UnityEngine.Object.DestroyImmediate(lockGo);
+        }
+
+        [Test]
+        public void ArenaCameraLock_Deactivate_UnlocksCamera()
+        {
+            // Arrange
+            var lockGo = new GameObject("ArenaLock");
+            var arenaLock = lockGo.AddComponent<ArenaCameraLock>();
+            arenaLock.ArenaMinX = -5f;
+            arenaLock.ArenaMaxX = 5f;
+            arenaLock.Activate(_camera);
+
+            // Act
+            arenaLock.Deactivate(_camera);
+
+            // Assert
+            Assert.IsFalse(_camera.IsArenaLocked);
+            Assert.IsFalse(arenaLock.IsActive);
+
+            UnityEngine.Object.DestroyImmediate(lockGo);
+        }
     }
 }
