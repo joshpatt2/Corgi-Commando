@@ -12,6 +12,12 @@ namespace CorgiCommando.Tests.EditMode
     [TestFixture]
     public class PlatformBuildTests
     {
+        [TearDown]
+        public void TearDown()
+        {
+            PlatformBuildConfig.OrientationProvider = () => Screen.orientation;
+        }
+
         [Test]
         public void PlatformSettings_LandscapeLocked_DefaultsTrue()
         {
@@ -116,26 +122,17 @@ namespace CorgiCommando.Tests.EditMode
         [Test]
         public void PlatformBuildConfig_IsLandscapeLocked_ReturnsTrueForLandscapeOrientations()
         {
-            var previousOrientation = Screen.orientation;
+            PlatformBuildConfig.OrientationProvider = () => ScreenOrientation.LandscapeLeft;
+            Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
 
-            try
-            {
-                Screen.orientation = ScreenOrientation.LandscapeLeft;
-                Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
+            PlatformBuildConfig.OrientationProvider = () => ScreenOrientation.LandscapeRight;
+            Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
 
-                Screen.orientation = ScreenOrientation.LandscapeRight;
-                Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
+            PlatformBuildConfig.OrientationProvider = () => ScreenOrientation.Portrait;
+            Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
 
-                Screen.orientation = ScreenOrientation.Portrait;
-                Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
-
-                Screen.orientation = ScreenOrientation.PortraitUpsideDown;
-                Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
-            }
-            finally
-            {
-                Screen.orientation = previousOrientation;
-            }
+            PlatformBuildConfig.OrientationProvider = () => ScreenOrientation.PortraitUpsideDown;
+            Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
         }
     }
 }
