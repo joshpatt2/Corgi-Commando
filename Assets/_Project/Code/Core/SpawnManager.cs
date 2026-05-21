@@ -50,8 +50,7 @@ namespace CorgiCommando.Core
             _waveData = waveData;
             CurrentWaveIndex = 0;
             TotalWaves = _waveData.waves?.Length ?? 0;
-            AliveEnemyCount = 0;
-            IsWaveCleared = false;
+            ResetWaveState();
             IsEncounterComplete = TotalWaves == 0;
         }
 
@@ -66,8 +65,7 @@ namespace CorgiCommando.Core
             }
 
             var wave = _waveData.waves[CurrentWaveIndex];
-            AliveEnemyCount = 0;
-            IsWaveCleared = false;
+            ResetWaveState();
 
             if (wave?.spawnGroups != null)
             {
@@ -125,14 +123,12 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            AliveEnemyCount = 0;
-            IsWaveCleared = false;
+            ResetWaveState();
         }
 
         private void ClearCurrentWave()
         {
             IsWaveCleared = true;
-            AliveEnemyCount = 0;
             OnWaveCleared?.Invoke(CurrentWaveIndex);
 
             if (CurrentWaveIndex >= TotalWaves - 1)
@@ -150,6 +146,12 @@ namespace CorgiCommando.Core
 
             IsEncounterComplete = true;
             OnEncounterComplete?.Invoke();
+        }
+
+        private void ResetWaveState()
+        {
+            AliveEnemyCount = 0;
+            IsWaveCleared = false;
         }
     }
 }
