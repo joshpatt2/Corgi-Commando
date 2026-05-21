@@ -83,14 +83,14 @@ namespace CorgiCommando.Core
         /// <param name="deltaTime">Time step.</param>
         public void Tick(float deltaTime)
         {
-            CheckGrounded();
+            var groundedAtStart = CheckGrounded();
 
             Velocity = new Vector3(
                 _moveInput.x * WalkSpeed * SpeedMultiplier,
                 Velocity.y,
                 _moveInput.y * DepthSpeed * SpeedMultiplier);
 
-            if (!IsGrounded)
+            if (!groundedAtStart)
             {
                 Velocity = new Vector3(Velocity.x, Velocity.y - (Gravity * deltaTime), Velocity.z);
             }
@@ -112,7 +112,7 @@ namespace CorgiCommando.Core
             var position = transform.position;
             var grounded = position.y <= GroundPlaneY;
 
-            if (grounded && position.y != GroundPlaneY)
+            if (grounded && Mathf.Abs(position.y - GroundPlaneY) > Mathf.Epsilon)
             {
                 position.y = GroundPlaneY;
                 transform.position = position;
