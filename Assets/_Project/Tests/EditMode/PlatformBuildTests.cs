@@ -103,7 +103,7 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
-        public void PlatformBuildConfig_IsLandscapeLocked_ReflectsCurrentOrientation()
+        public void PlatformBuildConfig_IsLandscapeLocked_ReturnsTrueForLandscapeOrientations()
         {
             var previousOrientation = Screen.orientation;
 
@@ -112,7 +112,13 @@ namespace CorgiCommando.Tests.EditMode
                 Screen.orientation = ScreenOrientation.LandscapeLeft;
                 Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
 
+                Screen.orientation = ScreenOrientation.LandscapeRight;
+                Assert.IsTrue(PlatformBuildConfig.IsLandscapeLocked());
+
                 Screen.orientation = ScreenOrientation.Portrait;
+                Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
+
+                Screen.orientation = ScreenOrientation.PortraitUpsideDown;
                 Assert.IsFalse(PlatformBuildConfig.IsLandscapeLocked());
             }
             finally
