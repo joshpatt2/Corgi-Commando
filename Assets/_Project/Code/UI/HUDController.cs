@@ -11,6 +11,8 @@ namespace CorgiCommando.UI
     public class HUDController : MonoBehaviour
     {
         private const int MaxPlayers = 2;
+        private const float SpecialMeterFullThreshold = 0.999f;
+        private const string DefaultFontName = "Arial.ttf";
 
         private bool _isSafeAreaApplied;
         private float _timeScaleBeforePause = 1f;
@@ -27,6 +29,7 @@ namespace CorgiCommando.UI
         private readonly Image[] _specialFillImages = new Image[MaxPlayers];
 
         private GameObject _pauseMenuPanel;
+        private static Font _defaultFont;
 
         /// <summary>Whether the game is currently paused.</summary>
         public bool IsPaused { get; private set; }
@@ -81,7 +84,7 @@ namespace CorgiCommando.UI
             if (fillImage != null)
             {
                 fillImage.fillAmount = ratio;
-                fillImage.color = ratio >= 0.999f
+                fillImage.color = ratio >= SpecialMeterFullThreshold
                     ? new Color(1f, 0.9f, 0.35f, 1f)
                     : new Color(0.3f, 0.85f, 1f, 1f);
             }
@@ -334,7 +337,7 @@ namespace CorgiCommando.UI
             pauseText.color = Color.white;
             pauseText.alignment = TextAnchor.MiddleCenter;
             pauseText.fontSize = 42;
-            pauseText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            pauseText.font = GetDefaultFont();
 
             _pauseMenuPanel.SetActive(false);
         }
@@ -371,6 +374,16 @@ namespace CorgiCommando.UI
             fillImage.fillOrigin = 0;
 
             return fillImage;
+        }
+
+        private static Font GetDefaultFont()
+        {
+            if (_defaultFont == null)
+            {
+                _defaultFont = Resources.GetBuiltinResource<Font>(DefaultFontName);
+            }
+
+            return _defaultFont;
         }
     }
 }

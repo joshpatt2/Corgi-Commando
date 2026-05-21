@@ -11,10 +11,12 @@ namespace CorgiCommando.UI
     public class ComboCounterUI : MonoBehaviour
     {
         private const float FadeDurationSeconds = 1f;
+        private const string DefaultFontName = "Arial.ttf";
 
         private Text _comboText;
         private CanvasGroup _canvasGroup;
         private Coroutine _fadeCoroutine;
+        private static Font _defaultFont;
 
         /// <summary>Current displayed combo count.</summary>
         public int DisplayedComboCount { get; private set; }
@@ -123,7 +125,7 @@ namespace CorgiCommando.UI
             textRect.anchoredPosition = Vector2.zero;
 
             _comboText = textGO.GetComponent<Text>();
-            _comboText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _comboText.font = GetDefaultFont();
             _comboText.alignment = TextAnchor.MiddleCenter;
             _comboText.fontSize = 44;
             _comboText.color = Color.white;
@@ -137,13 +139,23 @@ namespace CorgiCommando.UI
             float elapsed = 0f;
             while (elapsed < FadeDurationSeconds)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / FadeDurationSeconds);
                 _canvasGroup.alpha = 1f - t;
                 yield return null;
             }
 
             Hide();
+        }
+
+        private static Font GetDefaultFont()
+        {
+            if (_defaultFont == null)
+            {
+                _defaultFont = Resources.GetBuiltinResource<Font>(DefaultFontName);
+            }
+
+            return _defaultFont;
         }
     }
 }

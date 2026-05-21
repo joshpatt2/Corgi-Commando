@@ -193,7 +193,14 @@ namespace CorgiCommando.Tests.EditMode
             go.AddComponent<HUDController>();
 
             // Assert
-            Assert.Greater(go.GetComponentsInChildren<Image>(true).Length, 0);
+            Assert.NotNull(go.transform.Find("HUDCanvas/P1HUD"));
+            Assert.NotNull(go.transform.Find("HUDCanvas/P1HUD/HealthBarBG"));
+            Assert.NotNull(go.transform.Find("HUDCanvas/P1HUD/SpecialMeterBG"));
+            Assert.NotNull(go.transform.Find("HUDCanvas/P2HUD"));
+            Assert.NotNull(go.transform.Find("HUDCanvas/PauseMenuPanel"));
+            Assert.NotNull(go.transform.Find("HUDCanvas/ComboCounter"));
+            Assert.NotNull(go.transform.Find("HUDCanvas/BossBanner"));
+            Assert.Greater(go.GetComponentsInChildren<Image>(true).Length, 5);
             Assert.NotNull(go.GetComponentInChildren<ComboCounterUI>(true));
             Assert.NotNull(go.GetComponentInChildren<BossBannerUI>(true));
 

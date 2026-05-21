@@ -11,12 +11,14 @@ namespace CorgiCommando.UI
     public class BossBannerUI : MonoBehaviour
     {
         private const float PhaseFlashSeconds = 0.12f;
+        private const string DefaultFontName = "Arial.ttf";
 
         private Text _bossNameText;
         private Image _healthFillImage;
         private Image _flashOverlayImage;
         private CanvasGroup _canvasGroup;
         private Coroutine _flashCoroutine;
+        private static Font _defaultFont;
 
         /// <summary>Whether the boss banner is currently displayed.</summary>
         public bool IsVisible { get; private set; }
@@ -164,7 +166,7 @@ namespace CorgiCommando.UI
                 nameRect.anchoredPosition = new Vector2(0f, -6f);
 
                 _bossNameText = nameGO.GetComponent<Text>();
-                _bossNameText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                _bossNameText.font = GetDefaultFont();
                 _bossNameText.color = Color.white;
                 _bossNameText.alignment = TextAnchor.MiddleCenter;
                 _bossNameText.fontSize = 24;
@@ -215,6 +217,16 @@ namespace CorgiCommando.UI
             _flashOverlayImage.enabled = true;
             yield return new WaitForSecondsRealtime(PhaseFlashSeconds);
             _flashOverlayImage.enabled = false;
+        }
+
+        private static Font GetDefaultFont()
+        {
+            if (_defaultFont == null)
+            {
+                _defaultFont = Resources.GetBuiltinResource<Font>(DefaultFontName);
+            }
+
+            return _defaultFont;
         }
     }
 }
