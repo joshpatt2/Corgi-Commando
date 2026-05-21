@@ -9,6 +9,8 @@ namespace CorgiCommando.Enemies
     /// </summary>
     public class RaccoonBanditAI : EnemyAI
     {
+        public event Action<int> OnDroppedTreats;
+
         /// <summary>Whether this raccoon is currently carrying stolen Treats.</summary>
         public bool IsCarryingTreats { get; private set; }
 
@@ -20,12 +22,31 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void StealTreats(int amount)
         {
-            throw new NotImplementedException();
+            if (amount <= 0)
+            {
+                IsCarryingTreats = false;
+                StolenTreatsAmount = 0;
+                return;
+            }
+
+            IsCarryingTreats = true;
+            StolenTreatsAmount = amount;
+            TransitionTo(EnemyState.Fleeing);
         }
 
         public override void Tick(float deltaTime)
         {
-            throw new NotImplementedException();
+            base.Tick(deltaTime);
+        }
+
+        protected override void OnStateTransitioned(EnemyState oldState, EnemyState newState)
+        {
+            if (newState == EnemyState.Dead && IsCarryingTreats && StolenTreatsAmount > 0)
+            {
+                OnDroppedTreats?.Invoke(StolenTreatsAmount);
+                IsCarryingTreats = false;
+                StolenTreatsAmount = 0;
+            }
         }
     }
 }
