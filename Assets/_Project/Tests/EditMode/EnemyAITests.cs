@@ -437,7 +437,7 @@ namespace CorgiCommando.Tests.EditMode
             var playerGo = new GameObject("Player");
             playerGo.AddComponent<Entity>();
             var enemyGo = new GameObject("Enemy");
-            enemyGo.AddComponent<FeralCatAI>();
+            enemyGo.AddComponent<Entity>();
 
             try
             {
@@ -446,6 +446,8 @@ namespace CorgiCommando.Tests.EditMode
 
                 // Assert
                 Assert.That(UnityEngine.Object.FindObjectsOfType<Entity>(), Is.Empty);
+                Assert.IsTrue(playerGo == null);
+                Assert.IsTrue(enemyGo == null);
             }
             finally
             {
