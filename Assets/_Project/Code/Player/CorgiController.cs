@@ -15,7 +15,7 @@ namespace CorgiCommando.Player
     {
         private const float FramesPerSecond = 60f;
         [SerializeField] private CorgiData _characterData;
-        [SerializeField, Range(0, 1)] private int _playerIndex;
+        [SerializeField] private int _playerIndex;
 
         private IInputBuffer _inputBuffer;
         private KinematicMovementController _movementController;
