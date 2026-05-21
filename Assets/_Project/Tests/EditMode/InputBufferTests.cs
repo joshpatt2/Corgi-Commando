@@ -95,6 +95,22 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void ConsumeInput_ReturnsMostRecentUnconsumedMatch()
+        {
+            // Arrange
+            _buffer.RecordInput(InputAction.Punch, 1.0f);
+            _buffer.RecordInput(InputAction.Kick, 1.1f);
+            _buffer.RecordInput(InputAction.Punch, 1.2f);
+
+            // Act
+            var consumed = _buffer.ConsumeInput(InputAction.Punch);
+
+            // Assert
+            Assert.IsTrue(consumed.HasValue);
+            Assert.AreEqual(1.2f, consumed.Value.Timestamp, 0.001f);
+        }
+
+        [Test]
         public void HasBufferedInput_ReturnsTrueWithinWindow()
         {
             // Arrange — record a punch at time 1.0
@@ -107,6 +123,20 @@ namespace CorgiCommando.Tests.EditMode
 
             // Assert
             Assert.IsTrue(hasPunch);
+        }
+
+        [Test]
+        public void HasBufferedInput_ReturnsFalseOutsideWindow()
+        {
+            // Arrange
+            _buffer.RecordInput(InputAction.Punch, 1.0f);
+            _buffer.RecordInput(InputAction.Kick, 2.0f);
+
+            // Act
+            bool hasPunch = _buffer.HasBufferedInput(InputAction.Punch, 0.5f);
+
+            // Assert
+            Assert.IsFalse(hasPunch);
         }
 
         [Test]

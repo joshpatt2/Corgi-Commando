@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace CorgiCommando.Core
 {
@@ -32,7 +33,9 @@ namespace CorgiCommando.Core
         /// </summary>
         public void Initialize(IInputBuffer buffer, int playerIndex)
         {
-            throw new NotImplementedException();
+            Buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
+            PlayerIndex = playerIndex;
+            IsGamepadConnected = GetConnectedGamepadCount() > 0;
         }
 
         /// <summary>
@@ -40,7 +43,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnDeviceLost()
         {
-            throw new NotImplementedException();
+            IsGamepadConnected = false;
+            OnControllerDisconnected?.Invoke(PlayerIndex);
         }
 
         /// <summary>
@@ -48,7 +52,8 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnDeviceRegained()
         {
-            throw new NotImplementedException();
+            IsGamepadConnected = true;
+            OnControllerReconnected?.Invoke(PlayerIndex);
         }
 
         /// <summary>
@@ -57,7 +62,114 @@ namespace CorgiCommando.Core
         /// </summary>
         public static int GetConnectedGamepadCount()
         {
-            throw new NotImplementedException();
+            int connectedCount = 0;
+            for (int i = 0; i < Gamepad.all.Count; i++)
+            {
+                Gamepad gamepad = Gamepad.all[i];
+                if (gamepad != null && gamepad.added)
+                {
+                    connectedCount++;
+                }
+            }
+
+            return connectedCount;
+        }
+
+        private void OnMove(InputValue value)
+        {
+            if (Buffer == null || value == null)
+            {
+                return;
+            }
+
+            Vector2 axis = value.Get<Vector2>();
+            InputAction moveAction = GetMoveAction(axis);
+            if (moveAction == InputAction.None)
+            {
+                return;
+            }
+
+            Buffer.RecordInput(moveAction, Time.time, axis);
+        }
+
+        private void OnPunch()
+        {
+            RecordButtonInput(InputAction.Punch);
+        }
+
+        private void OnPunch(InputValue value)
+        {
+            RecordButtonInput(InputAction.Punch, value);
+        }
+
+        private void OnKick()
+        {
+            RecordButtonInput(InputAction.Kick);
+        }
+
+        private void OnKick(InputValue value)
+        {
+            RecordButtonInput(InputAction.Kick, value);
+        }
+
+        private void OnJump()
+        {
+            RecordButtonInput(InputAction.Jump);
+        }
+
+        private void OnJump(InputValue value)
+        {
+            RecordButtonInput(InputAction.Jump, value);
+        }
+
+        private void OnSpecial()
+        {
+            RecordButtonInput(InputAction.Special);
+        }
+
+        private void OnSpecial(InputValue value)
+        {
+            RecordButtonInput(InputAction.Special, value);
+        }
+
+        private void OnPause()
+        {
+            RecordButtonInput(InputAction.Pause);
+        }
+
+        private void OnPause(InputValue value)
+        {
+            RecordButtonInput(InputAction.Pause, value);
+        }
+
+        private void RecordButtonInput(InputAction action, InputValue value = null)
+        {
+            if (Buffer == null)
+            {
+                return;
+            }
+
+            if (value != null && !value.isPressed)
+            {
+                return;
+            }
+
+            Buffer.RecordInput(action, Time.time);
+        }
+
+        private static InputAction GetMoveAction(Vector2 axis)
+        {
+            if (axis.sqrMagnitude <= 0f)
+            {
+                return InputAction.None;
+            }
+
+            if (Mathf.Abs(axis.x) >= Mathf.Abs(axis.y))
+            {
+                return axis.x < 0f ? InputAction.MoveLeft : InputAction.MoveRight;
+            }
+
+            return axis.y < 0f ? InputAction.MoveDown : InputAction.MoveUp;
         }
     }
 }
