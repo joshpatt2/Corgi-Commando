@@ -153,12 +153,8 @@ namespace CorgiCommando.Tests.EditMode
         [Test]
         public void UseSpecial_WithFullMeter_ConsumesAndReturnsTrue()
         {
-            // Arrange — fill meter through the non-public property setter (combat fills this at runtime)
-            var specialMeterProperty = typeof(CorgiController).GetProperty(nameof(CorgiController.SpecialMeter));
-            Assert.NotNull(specialMeterProperty);
-            var setSpecialMeter = specialMeterProperty.GetSetMethod(true);
-            Assert.NotNull(setSpecialMeter);
-            setSpecialMeter.Invoke(_player, new object[] { _corgiData.maxSpecialMeter });
+            // Arrange — fill meter through public gameplay API
+            _player.AddSpecialMeter(_corgiData.maxSpecialMeter);
 
             // Meter readiness is computed by UseSpecial() from current meter/data.
             bool result = _player.UseSpecial();
@@ -167,6 +163,65 @@ namespace CorgiCommando.Tests.EditMode
             Assert.IsTrue(result);
             Assert.AreEqual(0f, _player.SpecialMeter);
             Assert.AreEqual(CorgiState.Special, _player.CurrentState);
+        }
+
+        [Test]
+        public void AddSpecialMeter_WhenCalled_ClampsToMaxAndMarksSpecialReady()
+        {
+            // Act
+            _player.AddSpecialMeter(_corgiData.maxSpecialMeter + 50f);
+
+            // Assert
+            Assert.AreEqual(_corgiData.maxSpecialMeter, _player.SpecialMeter);
+            Assert.IsTrue(_player.IsSpecialReady);
+        }
+
+        [Test]
+        public void Initialize_WithInvalidPlayerIndex_Throws()
+        {
+            // Arrange
+            var otherGo = new GameObject("OtherPlayer");
+            var otherPlayer = otherGo.AddComponent<CorgiController>();
+
+            try
+            {
+                // Act / Assert
+                Assert.Throws<ArgumentOutOfRangeException>(() => otherPlayer.Initialize(_corgiData, _inputBuffer, 2));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(otherGo);
+            }
+        }
+
+        [Test]
+        public void Tick_WithMoveInput_DelegatesToMovementController()
+        {
+            // Arrange
+            var movement = _playerGo.AddComponent<KinematicMovementController>();
+            _player.Initialize(_corgiData, _inputBuffer, 0);
+            _inputBuffer.RecordInput(InputAction.MoveRight, 0f, new Vector2(1f, 0f));
+
+            // Act
+            _player.Tick(1f / 60f);
+
+            // Assert
+            Assert.Greater(movement.Velocity.x, 0f);
+            Assert.AreEqual(CorgiState.Walk, _player.CurrentState);
+        }
+
+        [Test]
+        public void Tick_WhenNotAttacking_DecaysSpecialMeter()
+        {
+            // Arrange
+            _player.AddSpecialMeter(50f);
+            _corgiData.specialDecayRate = 5f;
+
+            // Act
+            _player.Tick(1f);
+
+            // Assert
+            Assert.AreEqual(45f, _player.SpecialMeter, 0.01f);
         }
 
         [Test]

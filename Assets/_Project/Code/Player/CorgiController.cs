@@ -15,6 +15,7 @@ namespace CorgiCommando.Player
     {
         private const float FramesPerSecond = 60f;
         private IInputBuffer _inputBuffer;
+        private KinematicMovementController _movementController;
         private float _comboWindowRemainingFrames;
 
         /// <summary>Current state in the player state machine.</summary>
@@ -48,7 +49,19 @@ namespace CorgiCommando.Player
         {
             CharacterData = data ?? throw new ArgumentNullException(nameof(data));
             _inputBuffer = inputBuffer ?? throw new ArgumentNullException(nameof(inputBuffer));
+            if (playerIndex < 0 || playerIndex > 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(playerIndex), "Player index must be 0 (P1) or 1 (P2).");
+            }
+
             PlayerIndex = playerIndex;
+            _movementController = GetComponent<KinematicMovementController>();
+            if (_movementController != null)
+            {
+                _movementController.WalkSpeed = CharacterData.walkSpeed;
+                _movementController.DepthSpeed = CharacterData.depthSpeed;
+                _movementController.JumpForce = CharacterData.jumpForce;
+            }
 
             CurrentState = CorgiState.Idle;
             ComboStep = 0;
@@ -124,6 +137,21 @@ namespace CorgiCommando.Player
         }
 
         /// <summary>
+        /// Adds special meter from gameplay events (for example, landing hits).
+        /// Value is clamped to [0, maxSpecialMeter].
+        /// </summary>
+        public void AddSpecialMeter(float amount)
+        {
+            if (CharacterData == null || amount <= 0f)
+            {
+                return;
+            }
+
+            SpecialMeter = Mathf.Clamp(SpecialMeter + amount, 0f, CharacterData.maxSpecialMeter);
+            RefreshSpecialReady();
+        }
+
+        /// <summary>
         /// Called each frame. Reads input buffer, updates state machine.
         /// </summary>
         public void Tick(float deltaTime)
@@ -138,44 +166,56 @@ namespace CorgiCommando.Player
                 _comboWindowRemainingFrames = Mathf.Max(0f, _comboWindowRemainingFrames - (deltaTime * FramesPerSecond));
             }
 
+            Vector2 axis = _inputBuffer.GetMoveAxis();
+            _movementController?.SetMoveInput(axis);
+
+            // Priority rule: when both are buffered this frame, Special is consumed before combo attacks.
             if (_inputBuffer.ConsumeInput(InputAction.Special).HasValue)
             {
                 UseSpecial();
-                return;
+            }
+            else
+            {
+                switch (CurrentState)
+                {
+                    case CorgiState.Attack1:
+                        if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                        {
+                            TransitionTo(CorgiState.Attack2);
+                        }
+                        break;
+                    case CorgiState.Attack2:
+                        if (_inputBuffer.ConsumeInput(InputAction.Kick).HasValue || _inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                        {
+                            TransitionTo(CorgiState.Attack3);
+                        }
+                        break;
+                    default:
+                        if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                        {
+                            TransitionTo(CorgiState.Attack1);
+                        }
+                        break;
+                }
+
+                bool hasMoveInput = axis.sqrMagnitude > 0f;
+                if (hasMoveInput && CurrentState == CorgiState.Idle)
+                {
+                    TransitionTo(CorgiState.Walk);
+                }
+                else if (!hasMoveInput && CurrentState == CorgiState.Walk)
+                {
+                    TransitionTo(CorgiState.Idle);
+                }
             }
 
-            switch (CurrentState)
+            if (!IsInAttackState(CurrentState) && CharacterData != null && CharacterData.specialDecayRate > 0f && SpecialMeter > 0f)
             {
-                case CorgiState.Attack1:
-                    if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
-                    {
-                        TransitionTo(CorgiState.Attack2);
-                    }
-                    return;
-                case CorgiState.Attack2:
-                    if (_inputBuffer.ConsumeInput(InputAction.Kick).HasValue || _inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
-                    {
-                        TransitionTo(CorgiState.Attack3);
-                    }
-                    return;
+                SpecialMeter = Mathf.Max(0f, SpecialMeter - (CharacterData.specialDecayRate * deltaTime));
+                RefreshSpecialReady();
             }
 
-            if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
-            {
-                TransitionTo(CorgiState.Attack1);
-                return;
-            }
-
-            Vector2 axis = _inputBuffer.GetMoveAxis();
-            bool hasMoveInput = axis.sqrMagnitude > 0f;
-            if (hasMoveInput && CurrentState == CorgiState.Idle)
-            {
-                TransitionTo(CorgiState.Walk);
-            }
-            else if (!hasMoveInput && CurrentState == CorgiState.Walk)
-            {
-                TransitionTo(CorgiState.Idle);
-            }
+            _movementController?.Tick(deltaTime);
         }
 
         /// <summary>
@@ -279,7 +319,9 @@ namespace CorgiCommando.Player
                 return;
             }
 
-            // Combo follow-up is valid during recovery + explicit combo-window frames.
+            // Design choice: follow-up can be buffered during recovery and through comboWindowFrames.
+            // This intentionally uses a forgiving chain timing (recovery + window), even though
+            // comboWindowFrames alone could also be interpreted as a strict post-recovery window.
             _comboWindowRemainingFrames = Mathf.Max(0f, currentAttack.recoveryFrames + currentAttack.comboWindowFrames);
         }
 
@@ -294,6 +336,13 @@ namespace CorgiCommando.Player
             // Per player-controller contract, specials require a full meter and the configured move cost.
             IsSpecialReady = SpecialMeter >= CharacterData.maxSpecialMeter &&
                              SpecialMeter >= CharacterData.specialCost;
+        }
+
+        private static bool IsInAttackState(CorgiState state)
+        {
+            return state == CorgiState.Attack1 ||
+                   state == CorgiState.Attack2 ||
+                   state == CorgiState.Attack3;
         }
     }
 }
