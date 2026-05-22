@@ -90,22 +90,42 @@ namespace CorgiCommando.Enemies
 
             if (CurrentState == EnemyState.Stunned)
             {
-                TransitionTo(EnemyState.Recover);
+                OnStunnedTick();
                 return;
             }
 
             if (CurrentState == EnemyState.Recover)
             {
-                TransitionTo(EnemyState.Chase);
+                OnRecoverTick();
                 return;
             }
 
             if (CurrentState == EnemyState.Attack)
             {
-                TransitionTo(EnemyState.Recover);
+                OnAttackTick();
                 return;
             }
 
+            OnActiveTick(deltaTime);
+        }
+
+        protected virtual void OnStunnedTick()
+        {
+            TransitionTo(EnemyState.Recover);
+        }
+
+        protected virtual void OnRecoverTick()
+        {
+            TransitionTo(EnemyState.Chase);
+        }
+
+        protected virtual void OnAttackTick()
+        {
+            TransitionTo(EnemyState.Recover);
+        }
+
+        protected virtual void OnActiveTick(float deltaTime)
+        {
             _targetSearchTimer -= deltaTime;
             if (CurrentTarget == null || !CurrentTarget.IsAlive || CurrentTarget.Faction != Faction.Player || _targetSearchTimer <= 0f)
             {

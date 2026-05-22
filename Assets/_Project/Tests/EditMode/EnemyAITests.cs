@@ -426,7 +426,7 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
-        public void SprinklerTurret_OnHit_StunRecoversToIdle_NotChase()
+        public void SprinklerTurret_OnHit_StunRecoversToIdle_NotChase_AndResumesCycle()
         {
             // Arrange
             var turretGo = new GameObject("Turret");
@@ -444,16 +444,28 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(EnemyState.Stunned, turret.CurrentState);
 
             // Act
-            turret.Tick(OneFrameDelta);
-
-            // Assert
-            Assert.AreEqual(EnemyState.Recover, turret.CurrentState);
-
-            // Act
-            turret.Tick(OneFrameDelta);
+            for (int i = 0; i < 10 && turret.CurrentState != EnemyState.Idle; i++)
+            {
+                turret.Tick(OneFrameDelta);
+            }
 
             // Assert
             Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+            Assert.AreNotEqual(EnemyState.Chase, turret.CurrentState);
+            Assert.IsFalse(turret.IsTelegraphing);
+
+            // Act
+            turret.Tick(turret.FireInterval);
+
+            // Assert
+            Assert.IsTrue(turret.IsTelegraphing);
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+
+            // Act
+            turret.Tick(turret.TelegraphDuration);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Attack, turret.CurrentState);
 
             UnityEngine.Object.DestroyImmediate(turretGo);
             UnityEngine.Object.DestroyImmediate(playerGo);

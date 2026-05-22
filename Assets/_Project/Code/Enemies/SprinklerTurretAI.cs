@@ -1,5 +1,3 @@
-using System;
-
 namespace CorgiCommando.Enemies
 {
     /// <summary>
@@ -21,32 +19,26 @@ namespace CorgiCommando.Enemies
         /// <summary>Whether the turret is currently in its telegraph phase.</summary>
         public bool IsTelegraphing { get; private set; }
 
-        public override void Tick(float deltaTime)
+        protected override void OnStunnedTick()
         {
-            if (deltaTime < 0f)
-            {
-                throw new ArgumentOutOfRangeException(nameof(deltaTime));
-            }
+            IsTelegraphing = false;
+            _telegraphTimer = 0f;
+            base.OnStunnedTick();
+        }
 
-            if (deltaTime == 0f || CurrentState == EnemyState.Dead)
-            {
-                return;
-            }
+        protected override void OnRecoverTick()
+        {
+            TransitionTo(EnemyState.Idle);
+        }
 
-            if (CurrentState == EnemyState.Stunned)
-            {
-                IsTelegraphing = false;
-                _telegraphTimer = 0f;
-                TransitionTo(EnemyState.Recover);
-                return;
-            }
+        protected override void OnAttackTick()
+        {
+            TransitionTo(EnemyState.Idle);
+            _cooldownTimer = 0f;
+        }
 
-            if (CurrentState == EnemyState.Recover)
-            {
-                TransitionTo(EnemyState.Idle);
-                return;
-            }
-
+        protected override void OnActiveTick(float deltaTime)
+        {
             if (IsTelegraphing)
             {
                 _telegraphTimer += deltaTime;
@@ -57,18 +49,6 @@ namespace CorgiCommando.Enemies
                     TransitionTo(EnemyState.Attack);
                 }
 
-                return;
-            }
-
-            if (CurrentState == EnemyState.Attack)
-            {
-                TransitionTo(EnemyState.Idle);
-                _cooldownTimer = 0f;
-                return;
-            }
-
-            if (CurrentState != EnemyState.Idle)
-            {
                 return;
             }
 
