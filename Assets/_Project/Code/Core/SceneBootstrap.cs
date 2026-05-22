@@ -29,12 +29,14 @@ namespace CorgiCommando.Core
         [SerializeField] private SpawnManager _spawnManager;
         [SerializeField] private ArenaCameraLock _arenaCameraLock;
         [SerializeField] private GroupTargetCamera _groupTargetCamera;
+        [SerializeField] private bool _autoStartEncounter = true;
 
         private readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
         private readonly List<CorgiController> _activePlayers = new List<CorgiController>();
         private CombatSystem _combatSystem;
         private ReviveSystem _reviveSystem;
         private RunState _runState;
+        private bool _encounterStarted;
 
         public event Action<SceneTickStage> OnTickStageExecuted;
 
@@ -42,6 +44,13 @@ namespace CorgiCommando.Core
         public CombatSystem CombatSystem => _combatSystem;
         public ReviveSystem ReviveSystem => _reviveSystem;
         public int ActiveEnemyCount => _activeEnemies.Count;
+        public bool AutoStartEncounter
+        {
+            get => _autoStartEncounter;
+            set => _autoStartEncounter = value;
+        }
+
+        public bool IsEncounterStarted => _encounterStarted;
 
         private void Start()
         {
@@ -72,8 +81,10 @@ namespace CorgiCommando.Core
             {
                 _spawnManager.OnEnemySpawned += RegisterEnemy;
                 _spawnManager.OnEnemyDeath += UnregisterEnemy;
-                _spawnManager.StartEncounter(_waveData);
-                _spawnManager.SpawnCurrentWave();
+                if (_autoStartEncounter)
+                {
+                    StartEncounter();
+                }
             }
 
             EnemyAI[] existingEnemies = FindObjectsOfType<EnemyAI>();
@@ -81,6 +92,18 @@ namespace CorgiCommando.Core
             {
                 RegisterEnemy(existingEnemies[i]);
             }
+        }
+
+        public void StartEncounter()
+        {
+            if (_spawnManager == null || _encounterStarted)
+            {
+                return;
+            }
+
+            _spawnManager.StartEncounter(_waveData);
+            _spawnManager.SpawnCurrentWave();
+            _encounterStarted = true;
         }
 
         private void Update()

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63018d8e1cfd64f72a16337b7ffe2ce2, type: 3}
+  m_Name: Weapon_Swing
+  m_EditorClassIdentifier: 
+  attackName: Weapon Swing
+  startupFrames: 3
+  activeFrames: 5
+  recoveryFrames: 8
+  comboWindowFrames: 6
+  damage: 14
+  knockbackForce: {x: 4, y: 1, z: 0}
+  hitstunFrames: 9
+  causesKnockdown: 0
+  hitboxRect:
+    serializedVersion: 2
+    x: 0.4
+    y: -0.2
+    width: 1.2
+    height: 0.6
+  hitstopFrames: 5
+  screenShakeIntensity: 0.1
+  hitType: 0
