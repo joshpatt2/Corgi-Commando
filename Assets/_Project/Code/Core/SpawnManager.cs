@@ -16,6 +16,7 @@ namespace CorgiCommando.Core
     public class SpawnManager : MonoBehaviour
     {
         private const float SpawnOffsetX = 1.5f;
+        private static Texture2D _placeholderTexture;
         private static Sprite _placeholderSprite;
         private WaveData _waveData;
 
@@ -163,9 +164,15 @@ namespace CorgiCommando.Core
                 return _placeholderSprite;
             }
 
-            var texture = Texture2D.whiteTexture;
+            if (_placeholderTexture == null)
+            {
+                _placeholderTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                _placeholderTexture.SetPixel(0, 0, Color.white);
+                _placeholderTexture.Apply();
+            }
+
             _placeholderSprite = Sprite.Create(
-                texture,
+                _placeholderTexture,
                 new Rect(0f, 0f, 1f, 1f),
                 new Vector2(0.5f, 0.5f),
                 1f);
