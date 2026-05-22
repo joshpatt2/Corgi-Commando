@@ -52,7 +52,11 @@ namespace CorgiCommando.Tests.PlayMode
             float startX = player.transform.position.x;
             inputBuffer.RecordInput(InputAction.MoveRight, Time.time, new Vector2(1f, 0f));
 
-            yield return null; // SceneBootstrap.Update tick
+            // Some PlayMode frames can report zero delta time; allow a few bootstrap ticks.
+            for (int i = 0; i < 3 && player.transform.position.x <= startX; i++)
+            {
+                yield return null;
+            }
 
             Assert.Greater(player.transform.position.x, startX);
 
