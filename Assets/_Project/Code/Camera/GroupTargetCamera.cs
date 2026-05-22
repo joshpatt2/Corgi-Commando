@@ -31,9 +31,19 @@ namespace CorgiCommando.Camera
         // not purged automatically, so _targets.Count may be misleading if ownership is violated.
         private readonly List<(Transform transform, float weight)> _targets = new List<(Transform, float)>();
         private bool _wasOverCap;
+        [SerializeField] private bool _useManualTick;
         // TODO: wire _arenaMinX/_arenaMaxX into CinemachineConfiner2D bounds when Cinemachine is integrated
         private float _arenaMinX;
         private float _arenaMaxX;
+
+        /// <summary>
+        /// When true, this component does not self-tick in Update and must be ticked manually.
+        /// </summary>
+        public bool UseManualTick
+        {
+            get => _useManualTick;
+            set => _useManualTick = value;
+        }
 
         /// <summary>
         /// Adds a player transform to the target group.
@@ -95,12 +105,28 @@ namespace CorgiCommando.Camera
             return maxX - minX;
         }
 
-        private void Update()
+        public void Tick(float deltaTime)
         {
+            if (deltaTime == 0f && _targets.Count < 2)
+            {
+                _wasOverCap = false;
+                return;
+            }
+
             bool isOverCap = _targets.Count >= 2 && GetPlayerDistance() > MaxPlayerDistance;
             if (isOverCap && !_wasOverCap)
                 OnDistanceCapReached?.Invoke();
             _wasOverCap = isOverCap;
+        }
+
+        private void Update()
+        {
+            if (_useManualTick)
+            {
+                return;
+            }
+
+            Tick(Time.deltaTime);
         }
     }
 }
