@@ -43,6 +43,18 @@ namespace CorgiCommando.Enemies
             CurrentTarget = null;
             HasAggroSlot = false;
             CurrentState = EnemyState.Idle;
+
+            // Register health so enemies can take damage from CombatSystem.ResolveAttack
+            if (!HasEntityComponent<IHealthComponent>())
+            {
+                AddEntityComponent<IHealthComponent>(new HealthComponent(data.maxHP));
+            }
+
+            // Register hurtbox so CombatSystem.ResolveAttack can resolve hits on this enemy
+            if (!HasEntityComponent<HurtboxComponent>())
+            {
+                AddEntityComponent<HurtboxComponent>(new HurtboxComponent());
+            }
         }
 
         /// <summary>

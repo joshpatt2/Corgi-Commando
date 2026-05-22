@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Core;
 using CorgiCommando.Combat;
@@ -20,6 +22,9 @@ namespace CorgiCommando.Player
         private IInputBuffer _inputBuffer;
         private KinematicMovementController _movementController;
         private float _comboWindowRemainingFrames;
+        private ICombatSystem _combatSystem;
+        private Coroutine _attackResolveCoroutine;
+        private bool _hasResolvedThisAttack;
 
         /// <summary>Current state in the player state machine.</summary>
         public CorgiState CurrentState { get; private set; }
@@ -42,8 +47,14 @@ namespace CorgiCommando.Player
         /// <summary>Whether the player is currently holding an environmental weapon.</summary>
         public bool IsHoldingWeapon { get; private set; }
 
+        /// <summary>Facing direction: 1 = right, -1 = left. Updated from move axis sign.</summary>
+        public int Facing { get; private set; } = 1;
+
         /// <summary>Fired when state changes.</summary>
         public event Action<CorgiState, CorgiState> OnStateChanged;
+
+        /// <summary>Fired when an attack lands a hit. Use for VFX/audio hookups.</summary>
+        public event Action<HitResult> OnHitLanded;
 
         private void Awake()
         {
@@ -76,7 +87,18 @@ namespace CorgiCommando.Player
             IsHoldingWeapon = false;
             SpecialMeter = 0f;
             _comboWindowRemainingFrames = 0f;
+            _hasResolvedThisAttack = false;
+            _attackResolveCoroutine = null;
             RefreshSpecialReady();
+        }
+
+        /// <summary>
+        /// Injects the combat system used for attack resolution.
+        /// Call this from the scene bootstrap after initialization.
+        /// </summary>
+        public void SetCombatSystem(ICombatSystem combatSystem)
+        {
+            _combatSystem = combatSystem;
         }
 
         /// <summary>
@@ -181,6 +203,11 @@ namespace CorgiCommando.Player
 
             Vector2 axis = _inputBuffer.GetMoveAxis();
             _movementController?.SetMoveInput(axis);
+
+            if (Mathf.Abs(axis.x) > 0.1f)
+            {
+                Facing = axis.x > 0f ? 1 : -1;
+            }
 
             // Priority rule: when both are buffered this frame, Special is consumed before combo attacks.
             if (_inputBuffer.ConsumeInput(InputAction.Special).HasValue)
@@ -294,19 +321,35 @@ namespace CorgiCommando.Player
 
         private void OnEnterState(CorgiState state)
         {
+            _hasResolvedThisAttack = false;
+
+            if (_attackResolveCoroutine != null)
+            {
+                StopCoroutine(_attackResolveCoroutine);
+                _attackResolveCoroutine = null;
+            }
+
             switch (state)
             {
                 case CorgiState.Attack1:
                     ComboStep = 1;
                     OpenComboWindowForCurrentAttack();
+                    ScheduleAttackResolve(GetCurrentAttackData());
                     return;
                 case CorgiState.Attack2:
                     ComboStep = 2;
                     OpenComboWindowForCurrentAttack();
+                    ScheduleAttackResolve(GetCurrentAttackData());
                     return;
                 case CorgiState.Attack3:
                     ComboStep = 3;
                     OpenComboWindowForCurrentAttack();
+                    ScheduleAttackResolve(GetCurrentAttackData());
+                    return;
+                case CorgiState.Special:
+                    ScheduleAttackResolve(CharacterData?.specialAttack);
+                    ComboStep = 0;
+                    _comboWindowRemainingFrames = 0f;
                     return;
                 default:
                     ComboStep = 0;
@@ -365,6 +408,79 @@ namespace CorgiCommando.Player
                    CharacterData != null &&
                    CharacterData.specialDecayRate > 0f &&
                    SpecialMeter > 0f;
+        }
+
+        private void ScheduleAttackResolve(AttackData attackData)
+        {
+            if (_combatSystem == null || attackData == null)
+            {
+                return;
+            }
+
+            _attackResolveCoroutine = StartCoroutine(ResolveAfterStartupFrames(attackData));
+        }
+
+        private IEnumerator ResolveAfterStartupFrames(AttackData attackData)
+        {
+            // Wait for startup frames before the active window opens
+            if (attackData.startupFrames > 0)
+            {
+                yield return new WaitForSeconds(attackData.startupFrames / FramesPerSecond);
+            }
+            else
+            {
+                yield return null; // Yield one frame so state is fully entered
+            }
+
+            if (_hasResolvedThisAttack)
+            {
+                yield break;
+            }
+
+            _hasResolvedThisAttack = true;
+
+            // Gather enemy targets in the scene
+            var targets = new List<Entity>();
+            Entity[] allEntities = FindObjectsOfType<Entity>();
+            for (int i = 0; i < allEntities.Length; i++)
+            {
+                Entity candidate = allEntities[i];
+                if (candidate != null && candidate != (Entity)this && candidate.IsAlive && candidate.Faction != Faction)
+                {
+                    targets.Add(candidate);
+                }
+            }
+
+            if (targets.Count == 0)
+            {
+                _attackResolveCoroutine = null;
+                yield break;
+            }
+
+            HitResult result = _combatSystem.ResolveAttack(this, attackData, targets.ToArray());
+
+            if (result.DidHit)
+            {
+                // Reapply knockback with facing correction so hits push in the right direction
+                var knockbackReceiver = result.Target?.GetEntityComponent<KnockbackReceiver>();
+                if (knockbackReceiver != null)
+                {
+                    knockbackReceiver.ApplyKnockback(new Vector3(
+                        attackData.knockbackForce.x * Facing,
+                        attackData.knockbackForce.y,
+                        attackData.knockbackForce.z));
+                }
+
+                // Fill attacker's special meter for landing a hit
+                if (CharacterData != null)
+                {
+                    AddSpecialMeter(CharacterData.specialGainPerHit);
+                }
+
+                OnHitLanded?.Invoke(result);
+            }
+
+            _attackResolveCoroutine = null;
         }
 
         private void TryAutoInitialize()
