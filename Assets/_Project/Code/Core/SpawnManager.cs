@@ -127,6 +127,15 @@ namespace CorgiCommando.Core
                 _pendingLowHpSpawnGroups[i] = pending;
             }
 
+            if (startingCohortHp <= 0 && _pendingLowHpSpawnGroups.Count > 0)
+            {
+                for (int i = 0; i < _pendingLowHpSpawnGroups.Count; i++)
+                {
+                    SpawnGroupEnemies(_pendingLowHpSpawnGroups[i].Group, includeInLowHpTriggerCohort: false);
+                }
+                _pendingLowHpSpawnGroups.Clear();
+            }
+
             OnWaveStarted?.Invoke(CurrentWaveIndex);
             EvaluateLowHpSpawnGroups();
 

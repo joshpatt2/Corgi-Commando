@@ -102,6 +102,8 @@ namespace CorgiCommando.Tests.EditMode
 
             Assert.That(wave1.spawnGroups.Sum(g => g.count), Is.EqualTo(3));
             Assert.That(CountByPreset(wave1, EnemyBehaviorPreset.FeralCat), Is.EqualTo(3));
+            Assert.That(wave1.spawnGroups.Where(g => g.spawnTrigger == SpawnTrigger.OnWaveStart).Sum(g => g.count), Is.EqualTo(2));
+            Assert.That(wave1.spawnGroups.Where(g => g.spawnTrigger == SpawnTrigger.OnLowHP).Sum(g => g.count), Is.EqualTo(1));
             Assert.That(wave1.spawnGroups.Count(g => g.spawnTrigger == SpawnTrigger.OnWaveStart && g.enemyData.behaviorPreset == EnemyBehaviorPreset.FeralCat), Is.EqualTo(1));
             Assert.That(wave1.spawnGroups.Count(g => g.spawnTrigger == SpawnTrigger.OnLowHP && g.enemyData.behaviorPreset == EnemyBehaviorPreset.FeralCat), Is.EqualTo(1));
             Assert.That(wave1.spawnGroups.Any(g => g.spawnTrigger == SpawnTrigger.OnLowHP && g.lowHpThresholdNormalized > 0f), Is.True);
