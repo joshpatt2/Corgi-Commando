@@ -35,6 +35,14 @@ Both targets lock orientation to landscape. iOS uses Bluetooth gamepads (no touc
 
 All tests should **fail** initially — they define the contracts that implementations must satisfy.
 
+## CI iOS Build Job
+
+GitHub Actions includes an **iOS build (Xcode project)** job on PRs to `main` and pushes to `main`.
+
+- If Unity license secrets are missing, the job logs a warning and skips the build.
+- If the license is present but not yet iOS-capable, the workflow is intentionally non-blocking until the license is upgraded (`UNITY_IOS_LICENSED` repository variable not set to `true`).
+- Once iOS licensing is ready, set `UNITY_IOS_LICENSED=true` to make iOS build failures a hard CI gate.
+
 ## Build Order
 
 Systems have dependencies. Implement in this order:
