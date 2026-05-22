@@ -11,7 +11,7 @@ namespace CorgiCommando.UI
     public class ComboCounterUI : MonoBehaviour
     {
         private const float FadeDurationSeconds = 1f;
-        private const string DefaultFontName = "Arial.ttf";
+        private const string DefaultFontName = "LegacyRuntime.ttf";
 
         private Text _comboText;
         private CanvasGroup _canvasGroup;

@@ -16,7 +16,7 @@ namespace CorgiCommando.UI
         private const float DefaultMaxSpecial = 100f;
         private const float DefaultCurrentSpecial = 0f;
         private const float SpecialMeterFullThreshold = 0.999f;
-        private const string DefaultFontName = "Arial.ttf";
+        private const string DefaultFontName = "LegacyRuntime.ttf";
         private static readonly Color PlayerPanelBackgroundColor = new Color(0f, 0f, 0f, 0.45f);
         private static readonly Color PlayerOnePortraitColor = new Color(1f, 0.55f, 0.15f, 1f);
         private static readonly Color PlayerTwoPortraitColor = new Color(0.55f, 0.8f, 1f, 1f);
