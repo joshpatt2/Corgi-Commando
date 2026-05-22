@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
@@ -19,6 +20,16 @@ namespace CorgiCommando.Core
         private static Texture2D _placeholderTexture;
         private static Sprite _placeholderSprite;
         private WaveData _waveData;
+        private readonly List<PendingSpawnGroup> _pendingLowHpSpawnGroups = new List<PendingSpawnGroup>();
+        private readonly List<EnemyAI> _currentWaveEnemies = new List<EnemyAI>();
+        private readonly HashSet<EnemyAI> _aliveWaveEnemies = new HashSet<EnemyAI>();
+        private readonly HashSet<EnemyAI> _lowHpTriggerCohort = new HashSet<EnemyAI>();
+
+        private struct PendingSpawnGroup
+        {
+            public SpawnGroup Group;
+            public int StartingHp;
+        }
 
         /// <summary>Current wave index (0-based).</summary>
         public int CurrentWaveIndex { get; private set; }
@@ -94,28 +105,103 @@ namespace CorgiCommando.Core
                         continue;
                     }
 
-                    int spawnCount = Math.Max(0, spawnGroup.count);
-                    for (int i = 0; i < spawnCount; i++)
+                    if (spawnGroup.spawnTrigger == SpawnTrigger.OnLowHP)
                     {
-                        Vector3 spawnPosition = spawnGroup.spawnPosition + new Vector3(i * SpawnOffsetX, 0f, 0f);
-                        EnemyAI spawnedEnemy = CreateEnemy(spawnGroup.enemyData, spawnPosition);
-                        if (spawnedEnemy == null)
+                        _pendingLowHpSpawnGroups.Add(new PendingSpawnGroup
                         {
-                            continue;
-                        }
-
-                        AliveEnemyCount++;
-                        NotifyEnemySpawned(spawnedEnemy);
+                            Group = spawnGroup,
+                            StartingHp = 0
+                        });
+                        continue;
                     }
+
+                    SpawnGroupEnemies(spawnGroup, includeInLowHpTriggerCohort: true);
                 }
             }
 
+            int startingCohortHp = CalculateLowHpTriggerCohortHp();
+            for (int i = 0; i < _pendingLowHpSpawnGroups.Count; i++)
+            {
+                var pending = _pendingLowHpSpawnGroups[i];
+                pending.StartingHp = startingCohortHp;
+                _pendingLowHpSpawnGroups[i] = pending;
+            }
+
             OnWaveStarted?.Invoke(CurrentWaveIndex);
+            EvaluateLowHpSpawnGroups();
 
             if (AliveEnemyCount == 0)
             {
                 ClearCurrentWave();
             }
+        }
+
+        private void SpawnGroupEnemies(SpawnGroup spawnGroup, bool includeInLowHpTriggerCohort)
+        {
+            int spawnCount = Math.Max(0, spawnGroup.count);
+            for (int i = 0; i < spawnCount; i++)
+            {
+                Vector3 spawnPosition = spawnGroup.spawnPosition + new Vector3(i * SpawnOffsetX, 0f, 0f);
+                EnemyAI spawnedEnemy = CreateEnemy(spawnGroup.enemyData, spawnPosition);
+                if (spawnedEnemy == null)
+                {
+                    continue;
+                }
+
+                spawnedEnemy.OnDeath += HandleSpawnedEnemyDeath;
+                _currentWaveEnemies.Add(spawnedEnemy);
+                _aliveWaveEnemies.Add(spawnedEnemy);
+                if (includeInLowHpTriggerCohort)
+                {
+                    _lowHpTriggerCohort.Add(spawnedEnemy);
+                }
+
+                AliveEnemyCount++;
+                NotifyEnemySpawned(spawnedEnemy);
+            }
+        }
+
+        private void EvaluateLowHpSpawnGroups()
+        {
+            if (IsEncounterComplete || IsWaveCleared || _pendingLowHpSpawnGroups.Count == 0)
+            {
+                return;
+            }
+
+            int currentCohortHp = CalculateLowHpTriggerCohortHp();
+            for (int i = _pendingLowHpSpawnGroups.Count - 1; i >= 0; i--)
+            {
+                var pending = _pendingLowHpSpawnGroups[i];
+                int thresholdHp = Mathf.CeilToInt(pending.StartingHp * Mathf.Clamp01(pending.Group.lowHpThresholdNormalized));
+                bool shouldSpawn = pending.StartingHp <= 0 || currentCohortHp < thresholdHp;
+                if (!shouldSpawn)
+                {
+                    continue;
+                }
+
+                SpawnGroupEnemies(pending.Group, includeInLowHpTriggerCohort: false);
+                _pendingLowHpSpawnGroups.RemoveAt(i);
+            }
+        }
+
+        private int CalculateLowHpTriggerCohortHp()
+        {
+            int totalHp = 0;
+            foreach (var enemy in _lowHpTriggerCohort)
+            {
+                if (enemy == null || !_aliveWaveEnemies.Contains(enemy))
+                {
+                    continue;
+                }
+
+                var health = enemy.GetEntityComponent<IHealthComponent>();
+                if (health != null)
+                {
+                    totalHp += Math.Max(0, health.CurrentHP);
+                }
+            }
+
+            return totalHp;
         }
 
         private static EnemyAI CreateEnemy(EnemyData enemyData, Vector3 spawnPosition)
@@ -185,6 +271,7 @@ namespace CorgiCommando.Core
         public void OnEnemyDied()
         {
             HandleEnemyDiedCount();
+            EvaluateLowHpSpawnGroups();
         }
 
         private void HandleEnemyDiedCount()
@@ -224,8 +311,13 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            HandleEnemyDiedCount();
+            if (!TryRegisterEnemyDeath(enemy))
+            {
+                return;
+            }
+
             OnEnemyDeath?.Invoke(enemy);
+            EvaluateLowHpSpawnGroups();
         }
 
         /// <summary>
@@ -266,8 +358,44 @@ namespace CorgiCommando.Core
 
         private void ResetWaveState()
         {
+            foreach (var enemy in _currentWaveEnemies)
+            {
+                if (enemy != null)
+                {
+                    enemy.OnDeath -= HandleSpawnedEnemyDeath;
+                }
+            }
+
+            _pendingLowHpSpawnGroups.Clear();
+            _currentWaveEnemies.Clear();
+            _aliveWaveEnemies.Clear();
+            _lowHpTriggerCohort.Clear();
             AliveEnemyCount = 0;
             IsWaveCleared = false;
+        }
+
+        private void HandleSpawnedEnemyDeath(Entity entity)
+        {
+            var enemy = entity as EnemyAI;
+            if (enemy == null || !TryRegisterEnemyDeath(enemy))
+            {
+                return;
+            }
+
+            OnEnemyDeath?.Invoke(enemy);
+            EvaluateLowHpSpawnGroups();
+        }
+
+        private bool TryRegisterEnemyDeath(EnemyAI enemy)
+        {
+            if (!_aliveWaveEnemies.Remove(enemy))
+            {
+                return false;
+            }
+
+            _lowHpTriggerCohort.Remove(enemy);
+            HandleEnemyDiedCount();
+            return true;
         }
     }
 }

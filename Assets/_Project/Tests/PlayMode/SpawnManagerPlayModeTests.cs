@@ -68,5 +68,73 @@ namespace CorgiCommando.Tests.PlayMode
             Object.Destroy(waveData);
             Object.Destroy(enemyData);
         }
+
+        [UnityTest]
+        public IEnumerator SpawnManager_LowHPReinforcement_SpawnsWhenThresholdCrossed()
+        {
+            var managerGo = new GameObject("SpawnManager");
+            var manager = managerGo.AddComponent<SpawnManager>();
+
+            var catData = ScriptableObject.CreateInstance<EnemyData>();
+            catData.enemyName = "FeralCat";
+            catData.behaviorPreset = EnemyBehaviorPreset.FeralCat;
+            catData.maxHP = 10;
+
+            var waveData = ScriptableObject.CreateInstance<WaveData>();
+            waveData.waves = new[]
+            {
+                new WaveEntry
+                {
+                    spawnGroups = new[]
+                    {
+                        new SpawnGroup
+                        {
+                            enemyData = catData,
+                            count = 2,
+                            spawnTrigger = SpawnTrigger.OnWaveStart,
+                            spawnPosition = Vector3.zero
+                        },
+                        new SpawnGroup
+                        {
+                            enemyData = catData,
+                            count = 1,
+                            spawnTrigger = SpawnTrigger.OnLowHP,
+                            lowHpThresholdNormalized = 0.4f,
+                            spawnPosition = new Vector3(6f, 0f, 0f)
+                        }
+                    }
+                }
+            };
+
+            manager.StartEncounter(waveData);
+            manager.SpawnCurrentWave();
+            yield return null;
+
+            var initialEnemies = Object.FindObjectsOfType<EnemyAI>();
+            Assert.That(initialEnemies.Length, Is.EqualTo(2));
+            Assert.That(manager.AliveEnemyCount, Is.EqualTo(2));
+
+            foreach (var enemy in initialEnemies)
+            {
+                var health = enemy.GetEntityComponent<IHealthComponent>();
+                Assert.That(health, Is.Not.Null);
+                health.TakeDamage(7);
+            }
+
+            yield return null;
+
+            var enemiesAfterTrigger = Object.FindObjectsOfType<EnemyAI>();
+            Assert.That(enemiesAfterTrigger.Length, Is.EqualTo(3));
+            Assert.That(manager.AliveEnemyCount, Is.EqualTo(3));
+
+            foreach (var enemy in enemiesAfterTrigger)
+            {
+                Object.Destroy(enemy.gameObject);
+            }
+
+            Object.Destroy(managerGo);
+            Object.Destroy(waveData);
+            Object.Destroy(catData);
+        }
     }
 }

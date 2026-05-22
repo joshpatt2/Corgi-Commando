@@ -23,8 +23,17 @@ namespace CorgiCommando.Data
         [Tooltip("Delay in seconds before this wave begins (after previous wave clears)")]
         public float delayBeforeSpawn = 1.0f;
 
+        [Tooltip("Whether environmental weapons are enabled during this wave")]
+        public bool environmentalWeaponsEnabled;
+
         [Tooltip("Enemy spawn groups in this wave")]
         public SpawnGroup[] spawnGroups;
+    }
+
+    public enum SpawnTrigger
+    {
+        OnWaveStart,
+        OnLowHP
     }
 
     /// <summary>
@@ -38,6 +47,13 @@ namespace CorgiCommando.Data
 
         [Tooltip("Number of this enemy type to spawn")]
         public int count = 1;
+
+        [Tooltip("When this group should spawn")]
+        public SpawnTrigger spawnTrigger = SpawnTrigger.OnWaveStart;
+
+        [Tooltip("For OnLowHP groups, spawn when current HP falls below this fraction of starting HP")]
+        [Range(0f, 1f)]
+        public float lowHpThresholdNormalized = 0.4f;
 
         [Tooltip("Spawn point position in world space")]
         public Vector3 spawnPosition;

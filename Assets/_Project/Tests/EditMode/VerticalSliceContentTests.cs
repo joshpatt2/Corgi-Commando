@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEditor;
+using System.Linq;
 using CorgiCommando.Data;
 
 namespace CorgiCommando.Tests.EditMode
@@ -91,6 +92,51 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void WaveData_BackyardWave1_W1_HasTwoCatsPlusReinforcement()
+        {
+            var waveData = AssetDatabase.LoadAssetAtPath<WaveData>(BackyardWavePath);
+            Assert.That(waveData, Is.Not.Null);
+            Assert.That(waveData.waves, Is.Not.Null);
+            Assert.That(waveData.waves.Length, Is.GreaterThanOrEqualTo(1));
+            var wave1 = waveData.waves[0];
+
+            Assert.That(wave1.spawnGroups.Sum(g => g.count), Is.EqualTo(3));
+            Assert.That(CountByPreset(wave1, EnemyBehaviorPreset.FeralCat), Is.EqualTo(3));
+            Assert.That(wave1.spawnGroups.Count(g => g.spawnTrigger == SpawnTrigger.OnWaveStart && g.enemyData.behaviorPreset == EnemyBehaviorPreset.FeralCat), Is.EqualTo(1));
+            Assert.That(wave1.spawnGroups.Count(g => g.spawnTrigger == SpawnTrigger.OnLowHP && g.enemyData.behaviorPreset == EnemyBehaviorPreset.FeralCat), Is.EqualTo(1));
+            Assert.That(wave1.spawnGroups.Any(g => g.spawnTrigger == SpawnTrigger.OnLowHP && g.lowHpThresholdNormalized > 0f), Is.True);
+        }
+
+        [Test]
+        public void WaveData_BackyardWave1_W2_HasSpecCompositions()
+        {
+            var waveData = AssetDatabase.LoadAssetAtPath<WaveData>(BackyardWavePath);
+            Assert.That(waveData, Is.Not.Null);
+            Assert.That(waveData.waves, Is.Not.Null);
+            Assert.That(waveData.waves.Length, Is.GreaterThanOrEqualTo(2));
+            var wave2 = waveData.waves[1];
+
+            Assert.That(CountByPreset(wave2, EnemyBehaviorPreset.FeralCat), Is.EqualTo(2));
+            Assert.That(CountByPreset(wave2, EnemyBehaviorPreset.RaccoonBandit), Is.EqualTo(1));
+            Assert.That(CountByPreset(wave2, EnemyBehaviorPreset.SprinklerTurret), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void WaveData_BackyardWave1_W3_HasSpecCompositionsAndEnvWeapons()
+        {
+            var waveData = AssetDatabase.LoadAssetAtPath<WaveData>(BackyardWavePath);
+            Assert.That(waveData, Is.Not.Null);
+            Assert.That(waveData.waves, Is.Not.Null);
+            Assert.That(waveData.waves.Length, Is.GreaterThanOrEqualTo(3));
+            var wave3 = waveData.waves[2];
+
+            Assert.That(CountByPreset(wave3, EnemyBehaviorPreset.FeralCat), Is.EqualTo(3));
+            Assert.That(CountByPreset(wave3, EnemyBehaviorPreset.RaccoonBandit), Is.EqualTo(2));
+            Assert.That(CountByPreset(wave3, EnemyBehaviorPreset.SprinklerTurret), Is.EqualTo(1));
+            Assert.That(wave3.environmentalWeaponsEnabled, Is.True);
+        }
+
+        [Test]
         public void VerticalSliceContent_AllAttackDataAssets_HaveNonZeroDamage()
         {
             foreach (var attackPath in AttackPaths)
@@ -99,6 +145,13 @@ namespace CorgiCommando.Tests.EditMode
                 Assert.That(attack, Is.Not.Null, $"Expected attack asset at path: {attackPath}");
                 Assert.That(attack.damage, Is.GreaterThan(0), $"Expected non-zero damage for {attackPath}");
             }
+        }
+
+        private static int CountByPreset(WaveEntry wave, EnemyBehaviorPreset behaviorPreset)
+        {
+            return wave.spawnGroups
+                .Where(g => g.enemyData != null && g.enemyData.behaviorPreset == behaviorPreset)
+                .Sum(g => g.count);
         }
     }
 }

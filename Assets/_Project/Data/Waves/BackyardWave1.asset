@@ -14,23 +14,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waves:
   - delayBeforeSpawn: 0
-    spawnGroups:
-    - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a01, type: 2}
-      count: 3
-      spawnPosition: {x: 5, y: 0, z: 0}
-  - delayBeforeSpawn: 1
+    environmentalWeaponsEnabled: 0
     spawnGroups:
     - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a01, type: 2}
       count: 2
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
+      spawnPosition: {x: 5, y: 0, z: 0}
+    - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a01, type: 2}
+      count: 1
+      spawnTrigger: 1
+      lowHpThresholdNormalized: 0.4
+      spawnPosition: {x: 9, y: 0, z: 0}
+  - delayBeforeSpawn: 1
+    environmentalWeaponsEnabled: 0
+    spawnGroups:
+    - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a01, type: 2}
+      count: 2
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
       spawnPosition: {x: 6, y: 0, z: 0}
     - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a02, type: 2}
       count: 1
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
       spawnPosition: {x: 8, y: 0, z: 0}
-  - delayBeforeSpawn: 1.5
-    spawnGroups:
     - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a03, type: 2}
       count: 1
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
       spawnPosition: {x: 10, y: 0, z: 0}
+  - delayBeforeSpawn: 1.5
+    environmentalWeaponsEnabled: 1
+    spawnGroups:
     - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a01, type: 2}
-      count: 2
+      count: 3
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
       spawnPosition: {x: 4, y: 0, z: 0}
+    - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a02, type: 2}
+      count: 2
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
+      spawnPosition: {x: 8, y: 0, z: 0}
+    - enemyData: {fileID: 11400000, guid: 8c4d5e6f708192a3b4c5d6e7f8090a03, type: 2}
+      count: 1
+      spawnTrigger: 0
+      lowHpThresholdNormalized: 0.4
+      spawnPosition: {x: 10, y: 0, z: 0}
