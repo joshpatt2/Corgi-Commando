@@ -33,6 +33,20 @@ namespace CorgiCommando.Enemies
                 return;
             }
 
+            if (CurrentState == EnemyState.Stunned)
+            {
+                IsTelegraphing = false;
+                _telegraphTimer = 0f;
+                TransitionTo(EnemyState.Recover);
+                return;
+            }
+
+            if (CurrentState == EnemyState.Recover)
+            {
+                TransitionTo(EnemyState.Idle);
+                return;
+            }
+
             if (IsTelegraphing)
             {
                 _telegraphTimer += deltaTime;
@@ -50,6 +64,11 @@ namespace CorgiCommando.Enemies
             {
                 TransitionTo(EnemyState.Idle);
                 _cooldownTimer = 0f;
+                return;
+            }
+
+            if (CurrentState != EnemyState.Idle)
+            {
                 return;
             }
 

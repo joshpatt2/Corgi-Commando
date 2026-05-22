@@ -14,6 +14,8 @@ namespace CorgiCommando.Tests.EditMode
     [TestFixture]
     public class EnemyAITests
     {
+        private const float OneFrameDelta = 0.016f;
+
         private EnemyData _catData;
         private EnemyData _raccoonData;
         private EnemyData _turretData;
@@ -413,11 +415,45 @@ namespace CorgiCommando.Tests.EditMode
             playerGo.transform.position = Vector3.one;
 
             // Act
-            turret.Tick(0.016f);
+            turret.Tick(OneFrameDelta);
 
             // Assert
             Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
             Assert.IsFalse(turret.IsTelegraphing);
+
+            UnityEngine.Object.DestroyImmediate(turretGo);
+            UnityEngine.Object.DestroyImmediate(playerGo);
+        }
+
+        [Test]
+        public void SprinklerTurret_OnHit_StunRecoversToIdle_NotChase()
+        {
+            // Arrange
+            var turretGo = new GameObject("Turret");
+            var turret = turretGo.AddComponent<SprinklerTurretAI>();
+            turret.Initialize(_turretData);
+
+            var playerGo = new GameObject("Player");
+            playerGo.AddComponent<Entity>();
+            playerGo.transform.position = Vector3.one;
+
+            // Act
+            turret.OnHit();
+
+            // Assert
+            Assert.AreEqual(EnemyState.Stunned, turret.CurrentState);
+
+            // Act
+            turret.Tick(OneFrameDelta);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Recover, turret.CurrentState);
+
+            // Act
+            turret.Tick(OneFrameDelta);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
 
             UnityEngine.Object.DestroyImmediate(turretGo);
             UnityEngine.Object.DestroyImmediate(playerGo);
