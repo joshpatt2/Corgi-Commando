@@ -166,9 +166,9 @@ namespace CorgiCommando.Core
             var texture = Texture2D.whiteTexture;
             _placeholderSprite = Sprite.Create(
                 texture,
-                new Rect(0f, 0f, texture.width, texture.height),
+                new Rect(0f, 0f, 1f, 1f),
                 new Vector2(0.5f, 0.5f),
-                texture.width);
+                1f);
             return _placeholderSprite;
         }
 

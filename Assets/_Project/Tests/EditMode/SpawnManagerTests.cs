@@ -65,11 +65,11 @@ namespace CorgiCommando.Tests.EditMode
         public void TearDown()
         {
             var enemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
-            for (int i = 0; i < enemies.Length; i++)
+            foreach (var enemy in enemies)
             {
-                if (enemies[i] != null)
+                if (enemy != null)
                 {
-                    UnityEngine.Object.DestroyImmediate(enemies[i].gameObject);
+                    UnityEngine.Object.DestroyImmediate(enemy.gameObject);
                 }
             }
 
