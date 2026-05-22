@@ -126,5 +126,28 @@ namespace CorgiCommando.Enemies
         {
             // Intentionally empty: WHISKERBOT's behavior is driven by phase events and external UnityEvent scripts.
         }
+
+        /// <summary>
+        /// Resets boss state to a fresh phase-1 intro state for retry.
+        /// </summary>
+        public void ResetToPhase1()
+        {
+            CurrentPhase = 1;
+            IsLaserActive = false;
+            IsPilotEjected = false;
+
+            if (PilotEntity != null)
+            {
+                Destroy(PilotEntity.gameObject);
+                PilotEntity = null;
+            }
+
+            Revive();
+        }
+
+        public string GetBossName()
+        {
+            return _data != null ? _data.enemyName : gameObject.name;
+        }
     }
 }
