@@ -15,6 +15,10 @@ namespace CorgiCommando.Tests.EditMode
     [TestFixture]
     public class CombatSystemTests
     {
+        private const float HeavyShakeIntensity = 0.2f;
+        private const float SpecialShakeIntensity = 0.3f;
+        private const float NoShakeIntensity = 0f;
+
         private CombatSystem _combat;
         private GameObject _attackerGo;
         private GameObject _targetGo;
@@ -305,7 +309,7 @@ namespace CorgiCommando.Tests.EditMode
             _attackerGo.transform.position = Vector3.zero;
             _targetGo.transform.position = new Vector3(1f, 0f, 0f);
             _screenShakeHandler.MinimumShakeIntensity = 0.05f;
-            var heavyAttack = CreateAttackData("HeavyKick", 0.2f, HitType.Heavy);
+            var heavyAttack = CreateAttackData("HeavyKick", HeavyShakeIntensity, HitType.Heavy);
 
             try
             {
@@ -329,7 +333,7 @@ namespace CorgiCommando.Tests.EditMode
             _attackerGo.transform.position = Vector3.zero;
             _targetGo.transform.position = new Vector3(1f, 0f, 0f);
             _screenShakeHandler.MinimumShakeIntensity = 0.05f;
-            var lightAttack = CreateAttackData("LightJab", 0f, HitType.Light);
+            var lightAttack = CreateAttackData("LightJab", NoShakeIntensity, HitType.Light);
 
             try
             {
@@ -352,8 +356,8 @@ namespace CorgiCommando.Tests.EditMode
             _attackerGo.transform.position = Vector3.zero;
             _targetGo.transform.position = new Vector3(1f, 0f, 0f);
             _screenShakeHandler.MinimumShakeIntensity = 0.05f;
-            var heavyAttack = CreateAttackData("HeavyKick", 0.2f, HitType.Heavy);
-            var specialAttack = CreateAttackData("BarkShockwave", 0.3f, HitType.Special);
+            var heavyAttack = CreateAttackData("HeavyKick", HeavyShakeIntensity, HitType.Heavy);
+            var specialAttack = CreateAttackData("BarkShockwave", SpecialShakeIntensity, HitType.Special);
 
             try
             {

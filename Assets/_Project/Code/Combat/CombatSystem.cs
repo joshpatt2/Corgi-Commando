@@ -32,7 +32,6 @@ namespace CorgiCommando.Combat
         private const float TargetFrameRate = 60f;
 
         public event Action<HitResult> OnHitConnected;
-        public event Action<HitResult> OnHitResolved;
         public event Action<int> OnHitstopStarted;
         public event Action OnHitstopEnded;
 
@@ -137,7 +136,6 @@ namespace CorgiCommando.Combat
                 // Special meter and event fire once per valid target hit
                 AddSpecialMeter(attacker, DefaultSpecialGainPerHit);
                 OnHitConnected?.Invoke(targetResult);
-                OnHitResolved?.Invoke(targetResult);
             }
 
             return result;
