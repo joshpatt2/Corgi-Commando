@@ -173,7 +173,7 @@ namespace CorgiCommando.Core
             {
                 var pending = _pendingLowHpSpawnGroups[i];
                 int thresholdHp = Mathf.CeilToInt(pending.StartingHp * Mathf.Clamp01(pending.Group.lowHpThresholdNormalized));
-                bool shouldSpawn = pending.StartingHp <= 0 || currentCohortHp < thresholdHp;
+                bool shouldSpawn = pending.StartingHp > 0 && currentCohortHp < thresholdHp;
                 if (!shouldSpawn)
                 {
                     continue;
@@ -394,6 +394,7 @@ namespace CorgiCommando.Core
             }
 
             _lowHpTriggerCohort.Remove(enemy);
+            // Keep legacy death-count behavior centralized here for both NotifyEnemyDied and OnDeath callbacks.
             HandleEnemyDiedCount();
             return true;
         }
