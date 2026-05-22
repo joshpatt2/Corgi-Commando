@@ -378,13 +378,37 @@ namespace CorgiCommando.Tests.EditMode
             }
         }
 
-        private static AttackData CreateAttackData(string attackName, float shakeIntensity, HitType hitType)
+        [Test]
+        public void Combat_HitWithHitstop_SchedulesDelayedImpulse()
+        {
+            // Arrange
+            _attackerGo.transform.position = Vector3.zero;
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _screenShakeHandler.MinimumShakeIntensity = 0.05f;
+            var heavyAttack = CreateAttackData("HeavyKick", HeavyShakeIntensity, HitType.Heavy, hitstopFrames: 6);
+
+            try
+            {
+                // Act
+                _combat.ResolveAttack(_attacker, heavyAttack, new[] { _target });
+
+                // Assert
+                Assert.AreEqual(0, _screenShakeHandler.ImpulseCount);
+                Assert.AreEqual(0.1f, _screenShakeHandler.LastScheduledDelay, 0.001f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(heavyAttack);
+            }
+        }
+
+        private static AttackData CreateAttackData(string attackName, float shakeIntensity, HitType hitType, int hitstopFrames = 0)
         {
             var attack = ScriptableObject.CreateInstance<AttackData>();
             attack.attackName = attackName;
             attack.damage = 10;
             attack.knockbackForce = new Vector3(3f, 1f, 0f);
-            attack.hitstopFrames = 0;
+            attack.hitstopFrames = hitstopFrames;
             attack.hitType = hitType;
             attack.screenShakeIntensity = shakeIntensity;
             attack.hitboxRect = new Rect(0.5f, -0.25f, 1f, 0.5f);
@@ -395,11 +419,17 @@ namespace CorgiCommando.Tests.EditMode
         {
             public int ImpulseCount { get; private set; }
             public float LastMagnitude { get; private set; }
+            public float LastScheduledDelay { get; private set; } = -1f;
 
             protected override void EmitImpulse(float magnitude)
             {
                 ImpulseCount++;
                 LastMagnitude = magnitude;
+            }
+
+            protected override void ScheduleDelayedImpulse(float delaySeconds, float magnitude)
+            {
+                LastScheduledDelay = delaySeconds;
             }
         }
     }

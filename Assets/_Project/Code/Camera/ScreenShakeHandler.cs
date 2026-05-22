@@ -97,7 +97,12 @@ namespace CorgiCommando.Camera
 
         private void HandleHitResolved(HitResult hitResult)
         {
-            if (!hitResult.DidHit || hitResult.ScreenShakeIntensity <= _minimumShakeIntensity)
+            if (!hitResult.DidHit)
+            {
+                return;
+            }
+
+            if (hitResult.ScreenShakeIntensity <= _minimumShakeIntensity)
             {
                 return;
             }
@@ -115,6 +120,11 @@ namespace CorgiCommando.Camera
                 return;
             }
 
+            ScheduleDelayedImpulse(delaySeconds, magnitude);
+        }
+
+        protected virtual void ScheduleDelayedImpulse(float delaySeconds, float magnitude)
+        {
             StartCoroutine(EmitImpulseAfterDelay(delaySeconds, magnitude));
         }
 
