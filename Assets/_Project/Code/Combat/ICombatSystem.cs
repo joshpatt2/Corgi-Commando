@@ -14,6 +14,9 @@ namespace CorgiCommando.Combat
         /// <summary>Fired when a hit connects. Subscribers handle VFX, SFX, scoring.</summary>
         event Action<HitResult> OnHitConnected;
 
+        /// <summary>Fired when a hit is resolved. Alias of OnHitConnected for feedback consumers.</summary>
+        event Action<HitResult> OnHitResolved;
+
         /// <summary>Fired when hitstop begins.</summary>
         event Action<int> OnHitstopStarted;
 
