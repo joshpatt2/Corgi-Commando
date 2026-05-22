@@ -63,6 +63,11 @@ namespace CorgiCommando.Core
 
             CacheActivePlayers();
 
+            for (int i = 0; i < _activePlayers.Count; i++)
+            {
+                _activePlayers[i]?.SetCombatSystem(_combatSystem);
+            }
+
             if (_spawnManager != null)
             {
                 _spawnManager.OnEnemySpawned += RegisterEnemy;
