@@ -5,7 +5,9 @@ using CorgiCommando.Combat;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
 using CorgiCommando.Player;
+using CorgiCommando.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace CorgiCommando.Core
 {
@@ -31,6 +33,11 @@ namespace CorgiCommando.Core
         [SerializeField] private GroupTargetCamera _groupTargetCamera;
         [SerializeField] private ScreenShakeHandler _screenShakeHandler;
         [SerializeField] private bool _autoStartEncounter = true;
+        [SerializeField] private HUDController _hudController;
+        [SerializeField] private PlayerInputManager _playerInputManager;
+        [SerializeField] private GameObject _playerPrefab;
+        [SerializeField] private Vector3 _playerTwoSpawnOffset = new Vector3(2f, 0f, 0f);
+        [SerializeField] private float _dropOutHoldDurationSeconds = 1f;
 
         private readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
         private readonly List<CorgiController> _activePlayers = new List<CorgiController>();
@@ -38,6 +45,9 @@ namespace CorgiCommando.Core
         private ReviveSystem _reviveSystem;
         private RunState _runState;
         private bool _encounterStarted;
+        private CorgiController _playerTwo;
+        private PlayerInputHandler _playerTwoInputHandler;
+        private float _dropOutHoldTimer;
 
         public event Action<SceneTickStage> OnTickStageExecuted;
 
@@ -52,6 +62,7 @@ namespace CorgiCommando.Core
         }
 
         public bool IsEncounterStarted => _encounterStarted;
+        public CorgiController PlayerTwo => _playerTwo;
 
         private void Start()
         {
@@ -72,6 +83,8 @@ namespace CorgiCommando.Core
             }
 
             CacheActivePlayers();
+            _hudController?.SetPlayerStripVisible(0, true);
+            _hudController?.SetPlayerStripVisible(1, false);
 
             for (int i = 0; i < _activePlayers.Count; i++)
             {
@@ -114,10 +127,23 @@ namespace CorgiCommando.Core
             float deltaTime = Time.deltaTime;
             OnTickStageExecuted?.Invoke(SceneTickStage.InputGather);
 
+            TryHandleDropInRequest();
+            TryHandleDropOutRequest(deltaTime);
+
             _combatSystem?.Tick(deltaTime);
             OnTickStageExecuted?.Invoke(SceneTickStage.Combat);
 
-            _playerOne?.Tick(deltaTime);
+            for (int i = _activePlayers.Count - 1; i >= 0; i--)
+            {
+                CorgiController player = _activePlayers[i];
+                if (player == null)
+                {
+                    _activePlayers.RemoveAt(i);
+                    continue;
+                }
+
+                player.Tick(deltaTime);
+            }
             OnTickStageExecuted?.Invoke(SceneTickStage.PlayerControllers);
 
             for (int i = 0; i < _activeEnemies.Count; i++)
@@ -152,6 +178,11 @@ namespace CorgiCommando.Core
                 _spawnManager.OnEnemyDeath -= UnregisterEnemy;
             }
 
+            if (_playerTwo != null)
+            {
+                DropOutPlayerTwo();
+            }
+
             for (int i = 0; i < _activeEnemies.Count; i++)
             {
                 if (_activeEnemies[i] != null)
@@ -161,6 +192,8 @@ namespace CorgiCommando.Core
             }
             _activeEnemies.Clear();
             _activePlayers.Clear();
+            _playerTwo = null;
+            _playerTwoInputHandler = null;
 
             if (_runState != null)
             {
@@ -176,6 +209,8 @@ namespace CorgiCommando.Core
             _arenaCameraLock ??= FindObjectOfType<ArenaCameraLock>();
             _groupTargetCamera ??= FindObjectOfType<GroupTargetCamera>();
             _screenShakeHandler ??= FindObjectOfType<ScreenShakeHandler>();
+            _hudController ??= FindObjectOfType<HUDController>();
+            _playerInputManager ??= FindObjectOfType<PlayerInputManager>();
         }
 
         private CorgiController FindPlayerOne()
@@ -205,6 +240,9 @@ namespace CorgiCommando.Core
                     _activePlayers.Add(player);
                 }
             }
+
+            _playerOne = FindPlayerOne();
+            _playerTwo = FindPlayerByIndex(1);
         }
 
         private void RegisterEnemy(EnemyAI enemy)
@@ -282,6 +320,239 @@ namespace CorgiCommando.Core
 
             _reviveSystem.Tick(downedPlayer.PlayerIndex, alivePlayer.transform.position, downedPlayer.transform.position, deltaTime);
             return true;
+        }
+
+        public bool TryDropInPlayerTwo(Gamepad joiningGamepad = null)
+        {
+            if (_runState == null || _runState.ActivePlayerCount >= 2 || _playerTwo != null)
+            {
+                return false;
+            }
+
+            GameObject playerTwoObject = CreatePlayerTwoObject(joiningGamepad);
+            if (playerTwoObject == null)
+            {
+                return false;
+            }
+
+            Vector3 spawnPosition = GetPlayerTwoSpawnPosition();
+            playerTwoObject.transform.position = spawnPosition;
+
+            CorgiController playerTwo = playerTwoObject.GetComponent<CorgiController>();
+            PlayerInputHandler inputHandler = playerTwoObject.GetComponent<PlayerInputHandler>();
+            if (playerTwo == null || inputHandler == null)
+            {
+                Destroy(playerTwoObject);
+                return false;
+            }
+
+            _runState.OnPlayerDropIn(1);
+            if (_runState.ActivePlayerCount < 2)
+            {
+                Destroy(playerTwoObject);
+                return false;
+            }
+
+            var inputBuffer = inputHandler.Buffer ?? new InputBuffer();
+            inputHandler.Initialize(inputBuffer, 1);
+            inputHandler.OnControllerDisconnected -= OnControllerDisconnected;
+            inputHandler.OnControllerDisconnected += OnControllerDisconnected;
+
+            var characterData = playerTwo.CharacterData ?? _playerOne?.CharacterData;
+            if (characterData != null)
+            {
+                playerTwo.Initialize(characterData, inputBuffer, 1);
+            }
+            playerTwo.SetCombatSystem(_combatSystem);
+
+            if (!_activePlayers.Contains(playerTwo))
+            {
+                _activePlayers.Add(playerTwo);
+            }
+
+            _playerTwo = playerTwo;
+            _playerTwoInputHandler = inputHandler;
+            _dropOutHoldTimer = 0f;
+
+            _groupTargetCamera?.AddTarget(playerTwo.transform);
+            _hudController?.SetPlayerStripVisible(1, true);
+            return true;
+        }
+
+        public void DropOutPlayerTwo()
+        {
+            if (_playerTwo == null && (_runState == null || _runState.ActivePlayerCount < 2))
+            {
+                return;
+            }
+
+            _runState?.OnPlayerDropOut(1);
+            _dropOutHoldTimer = 0f;
+
+            if (_playerTwoInputHandler != null)
+            {
+                _playerTwoInputHandler.OnControllerDisconnected -= OnControllerDisconnected;
+            }
+
+            if (_playerTwo != null)
+            {
+                _groupTargetCamera?.RemoveTarget(_playerTwo.transform);
+                _activePlayers.Remove(_playerTwo);
+                Destroy(_playerTwo.gameObject);
+            }
+
+            _playerTwo = null;
+            _playerTwoInputHandler = null;
+            _hudController?.SetPlayerStripVisible(1, false);
+        }
+
+        private void TryHandleDropInRequest()
+        {
+            if (_runState == null || _runState.ActivePlayerCount >= 2 || _playerTwo != null)
+            {
+                return;
+            }
+
+            if (PlayerInputHandler.GetConnectedGamepadCount() < 2)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Gamepad.all.Count; i++)
+            {
+                Gamepad gamepad = Gamepad.all[i];
+                if (gamepad == null || !WasDropInPressedThisFrame(gamepad))
+                {
+                    continue;
+                }
+
+                if (PlayerInput.FindFirstPairedToDevice(gamepad) != null)
+                {
+                    continue;
+                }
+
+                if (TryDropInPlayerTwo(gamepad))
+                {
+                    return;
+                }
+            }
+        }
+
+        private void TryHandleDropOutRequest(float deltaTime)
+        {
+            if (_playerTwo == null)
+            {
+                return;
+            }
+
+            if (_playerTwoInputHandler != null && !_playerTwoInputHandler.IsGamepadConnected)
+            {
+                DropOutPlayerTwo();
+                return;
+            }
+
+            Gamepad playerTwoPad = GetPlayerTwoGamepad();
+            if (playerTwoPad == null)
+            {
+                _dropOutHoldTimer = 0f;
+                return;
+            }
+
+            bool isHoldingDropOutButtons = playerTwoPad.selectButton.isPressed && playerTwoPad.startButton.isPressed;
+            _dropOutHoldTimer = isHoldingDropOutButtons ? _dropOutHoldTimer + deltaTime : 0f;
+
+            if (_dropOutHoldTimer >= _dropOutHoldDurationSeconds)
+            {
+                DropOutPlayerTwo();
+            }
+        }
+
+        private void OnControllerDisconnected(int playerIndex)
+        {
+            if (playerIndex == 1)
+            {
+                DropOutPlayerTwo();
+            }
+        }
+
+        private GameObject CreatePlayerTwoObject(Gamepad joiningGamepad)
+        {
+            if (_playerInputManager != null)
+            {
+                var joinedPlayer = _playerInputManager.JoinPlayer(1, -1, null, joiningGamepad);
+                if (joinedPlayer != null)
+                {
+                    return joinedPlayer.gameObject;
+                }
+            }
+
+            if (_playerPrefab != null)
+            {
+                return Instantiate(_playerPrefab);
+            }
+
+            return _playerOne != null ? Instantiate(_playerOne.gameObject) : null;
+        }
+
+        private Vector3 GetPlayerTwoSpawnPosition()
+        {
+            Vector3 basePosition = _playerOne != null
+                ? _playerOne.transform.position + _playerTwoSpawnOffset
+                : _playerTwoSpawnOffset;
+
+            if (Physics2D.OverlapCircle(basePosition, 0.25f) != null || Physics.CheckSphere(basePosition, 0.25f))
+            {
+                basePosition += new Vector3(0f, 1f, 0f);
+            }
+
+            return basePosition;
+        }
+
+        private static bool WasDropInPressedThisFrame(Gamepad gamepad)
+        {
+            return gamepad.startButton.wasPressedThisFrame
+                || gamepad.buttonSouth.wasPressedThisFrame
+                || gamepad.buttonEast.wasPressedThisFrame
+                || gamepad.buttonWest.wasPressedThisFrame
+                || gamepad.buttonNorth.wasPressedThisFrame;
+        }
+
+        private Gamepad GetPlayerTwoGamepad()
+        {
+            if (_playerTwo == null)
+            {
+                return null;
+            }
+
+            PlayerInput playerInput = _playerTwo.GetComponent<PlayerInput>();
+            if (playerInput == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < playerInput.devices.Count; i++)
+            {
+                if (playerInput.devices[i] is Gamepad gamepad)
+                {
+                    return gamepad;
+                }
+            }
+
+            return null;
+        }
+
+        private CorgiController FindPlayerByIndex(int playerIndex)
+        {
+            for (int i = 0; i < _activePlayers.Count; i++)
+            {
+                CorgiController player = _activePlayers[i];
+                if (player != null && player.PlayerIndex == playerIndex)
+                {
+                    return player;
+                }
+            }
+
+            return null;
         }
     }
 }
