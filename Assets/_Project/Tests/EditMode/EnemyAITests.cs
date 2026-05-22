@@ -451,7 +451,6 @@ namespace CorgiCommando.Tests.EditMode
 
             // Assert
             Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
-            Assert.AreNotEqual(EnemyState.Chase, turret.CurrentState);
             Assert.IsFalse(turret.IsTelegraphing);
 
             // Act
