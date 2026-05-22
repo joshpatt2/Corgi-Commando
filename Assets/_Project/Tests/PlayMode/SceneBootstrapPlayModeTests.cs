@@ -53,7 +53,7 @@ namespace CorgiCommando.Tests.PlayMode
             inputBuffer.RecordInput(InputAction.MoveRight, Time.time, new Vector2(1f, 0f));
 
             // Some PlayMode frames can report zero delta time; allow a few bootstrap ticks.
-            for (int frameCount = 0; frameCount < 3 && player.transform.position.x <= startX; frameCount++)
+            for (int retryCount = 0; retryCount < 3 && player.transform.position.x <= startX; retryCount++)
             {
                 yield return null;
             }
