@@ -103,5 +103,15 @@ namespace CorgiCommando.Core
             IsAlive = false;
             OnDeath?.Invoke(this);
         }
+
+        /// <summary>
+        /// Revives this entity by restoring health to max and clearing dead state.
+        /// </summary>
+        public void Revive()
+        {
+            var health = GetEntityComponent<IHealthComponent>();
+            health?.ResetToMax();
+            IsAlive = true;
+        }
     }
 }
