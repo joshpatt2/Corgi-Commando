@@ -144,6 +144,7 @@ namespace CorgiCommando.Camera
             [SerializeField] private CinemachineImpulseSource _impulseSource;
             [SerializeField, Min(0f)] private float _minimumShakeIntensity = 0.05f;
             [SerializeField, Min(0f)] private float _impulseScale = 1f;
+            [SerializeField] private Vector3 _impulseDirection = Vector3.right;
 
             private ICombatSystem _combatSystem;
             private bool _subscribed;
@@ -256,7 +257,8 @@ namespace CorgiCommando.Camera
                     return;
                 }
 
-                _impulseSource.GenerateImpulseWithVelocity(Vector3.right * magnitude);
+                Vector3 direction = _impulseDirection.sqrMagnitude > 0f ? _impulseDirection.normalized : Vector3.right;
+                _impulseSource.GenerateImpulseWithVelocity(direction * magnitude);
             }
         }
     }
