@@ -16,6 +16,7 @@ namespace CorgiCommando.Core
     public class SpawnManager : MonoBehaviour
     {
         private const float SpawnOffsetX = 1.5f;
+        private static Sprite _placeholderSprite;
         private WaveData _waveData;
 
         /// <summary>Current wave index (0-based).</summary>
@@ -125,7 +126,8 @@ namespace CorgiCommando.Core
             enemyGameObject.AddComponent<KinematicMovementController>();
 
             var spriteRenderer = enemyGameObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = CreatePlaceholderSprite(enemyData.placeholderColor);
+            spriteRenderer.sprite = GetPlaceholderSprite();
+            spriteRenderer.color = enemyData.placeholderColor;
 
             Type enemyType = ResolveEnemyType(enemyData.behaviorPreset);
             var enemy = enemyGameObject.AddComponent(enemyType) as EnemyAI;
@@ -154,12 +156,20 @@ namespace CorgiCommando.Core
             };
         }
 
-        private static Sprite CreatePlaceholderSprite(Color color)
+        private static Sprite GetPlaceholderSprite()
         {
-            var texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            texture.SetPixel(0, 0, color);
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
+            if (_placeholderSprite != null)
+            {
+                return _placeholderSprite;
+            }
+
+            var texture = Texture2D.whiteTexture;
+            _placeholderSprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                texture.width);
+            return _placeholderSprite;
         }
 
         /// <summary>

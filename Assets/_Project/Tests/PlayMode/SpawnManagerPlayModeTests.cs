@@ -59,12 +59,9 @@ namespace CorgiCommando.Tests.PlayMode
                 Assert.That(enemy.transform.position.z, Is.EqualTo(4f).Within(0.001f));
             }
 
-            for (int i = 0; i < enemies.Length; i++)
+            foreach (var enemy in enemies)
             {
-                if (enemies[i] != null)
-                {
-                    Object.Destroy(enemies[i].gameObject);
-                }
+                Object.Destroy(enemy.gameObject);
             }
 
             Object.Destroy(managerGo);

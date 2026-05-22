@@ -124,6 +124,8 @@ namespace CorgiCommando.Tests.EditMode
         [TestCase(EnemyBehaviorPreset.FeralCat, typeof(FeralCatAI))]
         [TestCase(EnemyBehaviorPreset.RaccoonBandit, typeof(RaccoonBanditAI))]
         [TestCase(EnemyBehaviorPreset.SprinklerTurret, typeof(SprinklerTurretAI))]
+        [TestCase(EnemyBehaviorPreset.Roomba, typeof(EnemyAI))]
+        [TestCase(EnemyBehaviorPreset.Boss, typeof(EnemyAI))]
         public void SpawnManager_SpawnCurrentWave_AttachesCorrectAIType(EnemyBehaviorPreset behaviorPreset, Type expectedType)
         {
             // Arrange
@@ -170,11 +172,13 @@ namespace CorgiCommando.Tests.EditMode
             var enemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
             Assert.AreEqual(3, enemies.Length);
 
-            for (int i = 0; i < enemies.Length; i++)
+            foreach (var enemy in enemies)
             {
-                Assert.NotNull(enemies[i].GetComponent<KinematicMovementController>());
-                Assert.NotNull(enemies[i].GetComponent<SpriteRenderer>());
-                Assert.NotNull(enemies[i].GetEntityComponent<HurtboxComponent>());
+                Assert.NotNull(enemy.GetComponent<KinematicMovementController>());
+                var spriteRenderer = enemy.GetComponent<SpriteRenderer>();
+                Assert.NotNull(spriteRenderer);
+                Assert.NotNull(enemy.GetEntityComponent<HurtboxComponent>());
+                Assert.AreEqual(_catData.placeholderColor, spriteRenderer.color);
             }
         }
 
