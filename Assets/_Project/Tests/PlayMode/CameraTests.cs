@@ -71,6 +71,18 @@ namespace CorgiCommando.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Camera_GroupTarget_WithTwoPlayers_FramesBoth()
+        {
+            _camera.AddTarget(_player1.transform);
+            _camera.AddTarget(_player2.transform);
+
+            yield return null;
+
+            float distance = _camera.GetPlayerDistance();
+            Assert.AreEqual(3f, distance, 0.1f);
+        }
+
+        [UnityTest]
         public IEnumerator DistanceCap_ExceedsMax_FiresEvent()
         {
             // Arrange
