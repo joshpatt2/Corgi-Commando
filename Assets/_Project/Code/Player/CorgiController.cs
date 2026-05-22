@@ -445,7 +445,7 @@ namespace CorgiCommando.Player
             for (int i = 0; i < allEntities.Length; i++)
             {
                 Entity candidate = allEntities[i];
-                if (candidate != null && candidate != (Entity)this && candidate.IsAlive && candidate.Faction != Faction)
+                if (candidate != null && candidate != this && candidate.IsAlive && candidate.Faction != Faction)
                 {
                     targets.Add(candidate);
                 }
@@ -461,7 +461,11 @@ namespace CorgiCommando.Player
 
             if (result.DidHit)
             {
-                // Reapply knockback with facing correction so hits push in the right direction
+                // Reapply knockback with facing correction so hits push in the right direction.
+                // CombatSystem.ResolveAttack already applied the raw knockback from AttackData;
+                // this call intentionally overwrites it with the facing-corrected impulse because
+                // KnockbackReceiver.ApplyKnockback is a simple setter (KnockbackVelocity = impulse).
+                // The X component is signed by Facing so enemies fly away from the attacker.
                 var knockbackReceiver = result.Target?.GetEntityComponent<KnockbackReceiver>();
                 if (knockbackReceiver != null)
                 {
