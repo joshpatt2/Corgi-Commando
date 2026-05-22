@@ -181,8 +181,13 @@ namespace CorgiCommando.Core
             for (int i = _pendingLowHpSpawnGroups.Count - 1; i >= 0; i--)
             {
                 var pending = _pendingLowHpSpawnGroups[i];
+                if (pending.StartingHp <= 0)
+                {
+                    continue;
+                }
+
                 int thresholdHp = Mathf.CeilToInt(pending.StartingHp * Mathf.Clamp01(pending.Group.lowHpThresholdNormalized));
-                bool shouldSpawn = pending.StartingHp > 0 && currentCohortHp < thresholdHp;
+                bool shouldSpawn = currentCohortHp < thresholdHp;
                 if (!shouldSpawn)
                 {
                     continue;

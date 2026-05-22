@@ -72,6 +72,7 @@ namespace CorgiCommando.Tests.PlayMode
         [UnityTest]
         public IEnumerator SpawnManager_LowHPReinforcement_SpawnsWhenThresholdCrossed()
         {
+            const int damageToDropBelowFortyPercent = 7;
             var managerGo = new GameObject("SpawnManager");
             var manager = managerGo.AddComponent<SpawnManager>();
 
@@ -118,7 +119,7 @@ namespace CorgiCommando.Tests.PlayMode
             {
                 var health = enemy.GetEntityComponent<IHealthComponent>();
                 Assert.That(health, Is.Not.Null);
-                health.TakeDamage(7);
+                health.TakeDamage(damageToDropBelowFortyPercent);
             }
 
             yield return null;
