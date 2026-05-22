@@ -36,6 +36,9 @@ namespace CorgiCommando.Core
         /// <summary>Fired when a player drops in.</summary>
         public event Action<int> OnPlayerJoined;
 
+        /// <summary>Fired when a player drops out.</summary>
+        public event Action<int> OnPlayerLeft;
+
         /// <summary>
         /// Initializes the run state for a new run.
         /// </summary>
@@ -111,6 +114,26 @@ namespace CorgiCommando.Core
 
             ActivePlayerCount++;
             OnPlayerJoined?.Invoke(playerIndex);
+        }
+
+        /// <summary>
+        /// Called when a player drops out mid-run.
+        /// </summary>
+        public void OnPlayerDropOut(int playerIndex)
+        {
+            if (playerIndex < 0 || playerIndex >= MaxPlayers)
+            {
+                throw new ArgumentOutOfRangeException(nameof(playerIndex), "Player index must be 0 (P1) or 1 (P2).");
+            }
+
+            if (ActivePlayerCount <= 1 || playerIndex >= ActivePlayerCount)
+            {
+                return;
+            }
+
+            ActivePlayerCount = Mathf.Max(1, ActivePlayerCount - 1);
+            _deadPlayers.Remove(playerIndex);
+            OnPlayerLeft?.Invoke(playerIndex);
         }
     }
 }
