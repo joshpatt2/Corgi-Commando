@@ -35,6 +35,7 @@ namespace CorgiCommando.Tests.EditMode
         {
             using var fixture = new SceneBootstrapFixture();
             InvokePrivate(fixture.Bootstrap, "Start");
+            int initialCount = fixture.Bootstrap.ActiveEnemyCount;
 
             var enemyGo = new GameObject("Enemy");
             var enemy = enemyGo.AddComponent<EnemyAI>();
@@ -42,7 +43,7 @@ namespace CorgiCommando.Tests.EditMode
 
             fixture.SpawnManager.NotifyEnemySpawned(enemy);
 
-            Assert.AreEqual(1, fixture.Bootstrap.ActiveEnemyCount);
+            Assert.AreEqual(initialCount + 1, fixture.Bootstrap.ActiveEnemyCount);
             UnityEngine.Object.DestroyImmediate(enemyGo);
         }
 
@@ -51,6 +52,7 @@ namespace CorgiCommando.Tests.EditMode
         {
             using var fixture = new SceneBootstrapFixture();
             InvokePrivate(fixture.Bootstrap, "Start");
+            int initialCount = fixture.Bootstrap.ActiveEnemyCount;
 
             var enemyGo = new GameObject("Enemy");
             var enemy = enemyGo.AddComponent<EnemyAI>();
@@ -59,7 +61,7 @@ namespace CorgiCommando.Tests.EditMode
             fixture.SpawnManager.NotifyEnemySpawned(enemy);
             fixture.SpawnManager.NotifyEnemyDied(enemy);
 
-            Assert.AreEqual(0, fixture.Bootstrap.ActiveEnemyCount);
+            Assert.AreEqual(initialCount, fixture.Bootstrap.ActiveEnemyCount);
             UnityEngine.Object.DestroyImmediate(enemyGo);
         }
 

@@ -7,9 +7,7 @@ namespace CorgiCommando.Core
 {
     /// <summary>
     /// Drives wave-based encounters from WaveData ScriptableObjects.
-    /// Currently scope: wave-state tracking only (alive count, wave clear, encounter complete).
-    /// Enemy instantiation (prefab spawning at SpawnGroup positions) is not yet implemented —
-    /// callers drive AliveEnemyCount transitions via OnEnemyDied.
+    /// Spawns runtime enemy GameObjects for each spawn group and tracks wave/encounter state.
     ///
     /// Contract: OnEncounterComplete fires exactly once, from the moment the final enemy of the
     /// final wave dies (via ClearCurrentWave). AdvanceToNextWave never completes the encounter;
@@ -17,6 +15,9 @@ namespace CorgiCommando.Core
     /// </summary>
     public class SpawnManager : MonoBehaviour
     {
+        private const float SpawnOffsetX = 1.5f;
+        private static Texture2D _placeholderTexture;
+        private static Sprite _placeholderSprite;
         private WaveData _waveData;
 
         /// <summary>Current wave index (0-based).</summary>
@@ -88,12 +89,24 @@ namespace CorgiCommando.Core
             {
                 foreach (var spawnGroup in wave.spawnGroups)
                 {
-                    if (spawnGroup == null)
+                    if (spawnGroup == null || spawnGroup.enemyData == null)
                     {
                         continue;
                     }
 
-                    AliveEnemyCount += Math.Max(0, spawnGroup.count);
+                    int spawnCount = Math.Max(0, spawnGroup.count);
+                    for (int i = 0; i < spawnCount; i++)
+                    {
+                        Vector3 spawnPosition = spawnGroup.spawnPosition + new Vector3(i * SpawnOffsetX, 0f, 0f);
+                        EnemyAI spawnedEnemy = CreateEnemy(spawnGroup.enemyData, spawnPosition);
+                        if (spawnedEnemy == null)
+                        {
+                            continue;
+                        }
+
+                        AliveEnemyCount++;
+                        NotifyEnemySpawned(spawnedEnemy);
+                    }
                 }
             }
 
@@ -103,6 +116,67 @@ namespace CorgiCommando.Core
             {
                 ClearCurrentWave();
             }
+        }
+
+        private static EnemyAI CreateEnemy(EnemyData enemyData, Vector3 spawnPosition)
+        {
+            string enemyName = string.IsNullOrWhiteSpace(enemyData.enemyName) ? "Enemy" : enemyData.enemyName;
+            var enemyGameObject = new GameObject(enemyName);
+            enemyGameObject.transform.position = spawnPosition;
+
+            enemyGameObject.AddComponent<KinematicMovementController>();
+
+            var spriteRenderer = enemyGameObject.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = GetPlaceholderSprite();
+            spriteRenderer.color = enemyData.placeholderColor;
+
+            Type enemyType = ResolveEnemyType(enemyData.behaviorPreset);
+            var enemy = enemyGameObject.AddComponent(enemyType) as EnemyAI;
+            if (enemy == null)
+            {
+                Destroy(enemyGameObject);
+                return null;
+            }
+
+            enemy.AddEntityComponent(new HurtboxComponent
+            {
+                Bounds = new Rect(-0.5f, -0.5f, 1f, 1f)
+            });
+            enemy.Initialize(enemyData);
+            return enemy;
+        }
+
+        private static Type ResolveEnemyType(EnemyBehaviorPreset behaviorPreset)
+        {
+            return behaviorPreset switch
+            {
+                EnemyBehaviorPreset.FeralCat => typeof(FeralCatAI),
+                EnemyBehaviorPreset.RaccoonBandit => typeof(RaccoonBanditAI),
+                EnemyBehaviorPreset.SprinklerTurret => typeof(SprinklerTurretAI),
+                _ => typeof(EnemyAI)
+            };
+        }
+
+        private static Sprite GetPlaceholderSprite()
+        {
+            if (_placeholderSprite != null)
+            {
+                return _placeholderSprite;
+            }
+
+            if (_placeholderTexture == null)
+            {
+                _placeholderTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                _placeholderTexture.SetPixel(0, 0, Color.white);
+                _placeholderTexture.Apply();
+            }
+
+            _placeholderSprite = Sprite.Create(
+                _placeholderTexture,
+                new Rect(0f, 0f, 1f, 1f),
+                new Vector2(0.5f, 0.5f),
+                1f);
+            return _placeholderSprite;
         }
 
         /// <summary>

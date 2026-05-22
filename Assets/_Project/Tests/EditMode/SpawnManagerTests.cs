@@ -3,12 +3,12 @@ using NUnit.Framework;
 using UnityEngine;
 using CorgiCommando.Core;
 using CorgiCommando.Data;
+using CorgiCommando.Enemies;
 
 namespace CorgiCommando.Tests.EditMode
 {
     /// <summary>
-    /// Tests for SpawnManager wave management logic.
-    /// Edit Mode tests for pure state tracking; spawn instantiation is Play Mode.
+    /// Tests for SpawnManager wave management logic and enemy spawn wiring.
     /// </summary>
     [TestFixture]
     public class SpawnManagerTests
@@ -17,6 +17,8 @@ namespace CorgiCommando.Tests.EditMode
         private SpawnManager _manager;
         private WaveData _waveData;
         private EnemyData _catData;
+        private EnemyData _raccoonData;
+        private EnemyData _sprinklerData;
 
         [SetUp]
         public void SetUp()
@@ -26,7 +28,16 @@ namespace CorgiCommando.Tests.EditMode
 
             _catData = ScriptableObject.CreateInstance<EnemyData>();
             _catData.enemyName = "FeralCat";
+            _catData.behaviorPreset = EnemyBehaviorPreset.FeralCat;
             _catData.maxHP = 30;
+
+            _raccoonData = ScriptableObject.CreateInstance<EnemyData>();
+            _raccoonData.enemyName = "Raccoon";
+            _raccoonData.behaviorPreset = EnemyBehaviorPreset.RaccoonBandit;
+
+            _sprinklerData = ScriptableObject.CreateInstance<EnemyData>();
+            _sprinklerData.enemyName = "Sprinkler";
+            _sprinklerData.behaviorPreset = EnemyBehaviorPreset.SprinklerTurret;
 
             _waveData = ScriptableObject.CreateInstance<WaveData>();
             _waveData.waves = new[]
@@ -53,8 +64,19 @@ namespace CorgiCommando.Tests.EditMode
         [TearDown]
         public void TearDown()
         {
+            var enemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
+            foreach (var enemy in enemies)
+            {
+                if (enemy != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(enemy.gameObject);
+                }
+            }
+
             UnityEngine.Object.DestroyImmediate(_managerGo);
             UnityEngine.Object.DestroyImmediate(_catData);
+            UnityEngine.Object.DestroyImmediate(_raccoonData);
+            UnityEngine.Object.DestroyImmediate(_sprinklerData);
             UnityEngine.Object.DestroyImmediate(_waveData);
         }
 
@@ -82,6 +104,82 @@ namespace CorgiCommando.Tests.EditMode
             // Assert — wave 0 has 3 cats
             Assert.AreEqual(3, _manager.AliveEnemyCount);
             Assert.IsFalse(_manager.IsWaveCleared);
+        }
+
+        [Test]
+        public void SpawnManager_SpawnCurrentWave_FiresOnEnemySpawned()
+        {
+            // Arrange
+            _manager.StartEncounter(_waveData);
+            int spawnEventCount = 0;
+            _manager.OnEnemySpawned += _ => spawnEventCount++;
+
+            // Act
+            _manager.SpawnCurrentWave();
+
+            // Assert
+            Assert.AreEqual(3, spawnEventCount);
+        }
+
+        [TestCase(EnemyBehaviorPreset.FeralCat, typeof(FeralCatAI))]
+        [TestCase(EnemyBehaviorPreset.RaccoonBandit, typeof(RaccoonBanditAI))]
+        [TestCase(EnemyBehaviorPreset.SprinklerTurret, typeof(SprinklerTurretAI))]
+        [TestCase(EnemyBehaviorPreset.Roomba, typeof(EnemyAI))]
+        [TestCase(EnemyBehaviorPreset.Boss, typeof(EnemyAI))]
+        public void SpawnManager_SpawnCurrentWave_AttachesCorrectAIType(EnemyBehaviorPreset behaviorPreset, Type expectedType)
+        {
+            // Arrange
+            var enemyData = ScriptableObject.CreateInstance<EnemyData>();
+            enemyData.enemyName = "TypedEnemy";
+            enemyData.behaviorPreset = behaviorPreset;
+
+            var singleWaveData = ScriptableObject.CreateInstance<WaveData>();
+            singleWaveData.waves = new[]
+            {
+                new WaveEntry
+                {
+                    spawnGroups = new[]
+                    {
+                        new SpawnGroup { enemyData = enemyData, count = 1, spawnPosition = Vector3.zero }
+                    }
+                }
+            };
+
+            _manager.StartEncounter(singleWaveData);
+
+            // Act
+            _manager.SpawnCurrentWave();
+
+            // Assert
+            var enemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
+            Assert.AreEqual(1, enemies.Length);
+            Assert.IsInstanceOf(expectedType, enemies[0]);
+
+            UnityEngine.Object.DestroyImmediate(singleWaveData);
+            UnityEngine.Object.DestroyImmediate(enemyData);
+        }
+
+        [Test]
+        public void SpawnManager_SpawnCurrentWave_AttachesMovementAndHurtbox()
+        {
+            // Arrange
+            _manager.StartEncounter(_waveData);
+
+            // Act
+            _manager.SpawnCurrentWave();
+
+            // Assert
+            var enemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
+            Assert.AreEqual(3, enemies.Length);
+
+            foreach (var enemy in enemies)
+            {
+                Assert.NotNull(enemy.GetComponent<KinematicMovementController>());
+                var spriteRenderer = enemy.GetComponent<SpriteRenderer>();
+                Assert.NotNull(spriteRenderer);
+                Assert.NotNull(enemy.GetEntityComponent<HurtboxComponent>());
+                Assert.AreEqual(_catData.placeholderColor, spriteRenderer.color);
+            }
         }
 
         [Test]
