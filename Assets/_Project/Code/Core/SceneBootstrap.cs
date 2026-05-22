@@ -99,8 +99,7 @@ namespace CorgiCommando.Core
                 RegisterEnemy(existingEnemies[i]);
             }
 
-            _bossController = FindObjectOfType<WhiskerbotController>();
-            _bossBannerUI = FindObjectOfType<BossBannerUI>();
+            RefreshBossReferences();
         }
 
         private void Update()
@@ -287,11 +286,13 @@ namespace CorgiCommando.Core
 
         /// <summary>
         /// Called by level trigger wiring when players enter the boss intro door.
+        /// Activates boss-fight tracking and sets the boss-intro checkpoint.
         /// </summary>
         public void OnBossDoorTriggered()
         {
             _isBossFightActive = true;
             _runState?.SetCheckpoint(Checkpoint.BossIntro);
+            RefreshBossReferences();
         }
 
         /// <summary>
@@ -307,6 +308,9 @@ namespace CorgiCommando.Core
             ReloadLevelBackyard();
         }
 
+        /// <summary>
+        /// Enables/disables scene reload on game-over. Primarily used by tests.
+        /// </summary>
         public void SetReloadSceneOnGameOver(bool enabled)
         {
             _reloadSceneOnGameOver = enabled;
@@ -340,7 +344,7 @@ namespace CorgiCommando.Core
 
             if (consideredPlayers > 0 && deadCount >= consideredPlayers)
             {
-                _runState.OnPartyWipe();
+                _runState.TriggerPartyWipe();
             }
         }
 
@@ -373,9 +377,7 @@ namespace CorgiCommando.Core
                 yield return new WaitForSeconds(retryDelay);
             }
 
-            Vector3 spawnPosition = _bossIntroSpawnPoint != null
-                ? _bossIntroSpawnPoint.position
-                : (_activePlayers.Count > 0 && _activePlayers[0] != null ? _activePlayers[0].transform.position : Vector3.zero);
+            Vector3 spawnPosition = GetBossRetrySpawnPosition();
 
             for (int i = 0; i < _activePlayers.Count; i++)
             {
@@ -390,14 +392,14 @@ namespace CorgiCommando.Core
                 player.TransitionTo(CorgiState.Idle);
             }
 
-            _bossController ??= FindObjectOfType<WhiskerbotController>();
-            _bossController?.ResetToPhase1();
-
             if (_bossController != null)
             {
+                _bossController.ResetToPhase1();
                 var bossHealth = _bossController.GetEntityComponent<IHealthComponent>();
-                _bossBannerUI ??= FindObjectOfType<BossBannerUI>();
-                _bossBannerUI?.Show(_bossController.GetBossName(), bossHealth?.CurrentHP ?? 0, bossHealth?.MaxHP ?? 1);
+                if (bossHealth != null)
+                {
+                    _bossBannerUI?.Show(_bossController.GetBossName(), bossHealth.CurrentHP, bossHealth.MaxHP);
+                }
             }
 
             HidePrompt();
@@ -480,6 +482,34 @@ namespace CorgiCommando.Core
             promptGo.GetComponent<RectTransform>().sizeDelta = new Vector2(520f, 140f);
             promptGo.SetActive(false);
             _wipePromptText = text;
+        }
+
+        private void RefreshBossReferences()
+        {
+            if (_bossController == null)
+            {
+                _bossController = FindObjectOfType<WhiskerbotController>();
+            }
+
+            if (_bossBannerUI == null)
+            {
+                _bossBannerUI = FindObjectOfType<BossBannerUI>();
+            }
+        }
+
+        private Vector3 GetBossRetrySpawnPosition()
+        {
+            if (_bossIntroSpawnPoint != null)
+            {
+                return _bossIntroSpawnPoint.position;
+            }
+
+            if (_activePlayers.Count > 0 && _activePlayers[0] != null)
+            {
+                return _activePlayers[0].transform.position;
+            }
+
+            return Vector3.zero;
         }
     }
 }

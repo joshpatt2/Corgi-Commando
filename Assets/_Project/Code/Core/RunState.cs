@@ -73,6 +73,14 @@ namespace CorgiCommando.Core
         /// </summary>
         public void OnPartyWipe()
         {
+            TriggerPartyWipe();
+        }
+
+        /// <summary>
+        /// Triggers the party-wipe event.
+        /// </summary>
+        public void TriggerPartyWipe()
+        {
             OnPartyWiped?.Invoke();
         }
 
