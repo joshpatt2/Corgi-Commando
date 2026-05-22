@@ -14,6 +14,8 @@ namespace CorgiCommando.Tests.EditMode
     [TestFixture]
     public class EnemyAITests
     {
+        private const float OneFrameDelta = 0.016f;
+
         private EnemyData _catData;
         private EnemyData _raccoonData;
         private EnemyData _turretData;
@@ -407,6 +409,75 @@ namespace CorgiCommando.Tests.EditMode
             Assert.IsTrue(turret.IsTelegraphing);
 
             UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        [Test]
+        public void SprinklerTurret_Tick_PlayerNearby_DoesNotEnterChase()
+        {
+            // Arrange
+            var turretGo = new GameObject("Turret");
+            var turret = turretGo.AddComponent<SprinklerTurretAI>();
+            turret.Initialize(_turretData);
+            turretGo.transform.position = Vector3.zero;
+
+            var playerGo = new GameObject("Player");
+            playerGo.AddComponent<Entity>();
+            playerGo.transform.position = Vector3.one;
+
+            // Act
+            turret.Tick(OneFrameDelta);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+            Assert.IsFalse(turret.IsTelegraphing);
+
+            UnityEngine.Object.DestroyImmediate(turretGo);
+            UnityEngine.Object.DestroyImmediate(playerGo);
+        }
+
+        [Test]
+        public void SprinklerTurret_OnHit_StunRecoversToIdle_NotChase_AndResumesCycle()
+        {
+            // Arrange
+            var turretGo = new GameObject("Turret");
+            var turret = turretGo.AddComponent<SprinklerTurretAI>();
+            turret.Initialize(_turretData);
+
+            var playerGo = new GameObject("Player");
+            playerGo.AddComponent<Entity>();
+            playerGo.transform.position = Vector3.one;
+
+            // Act
+            turret.OnHit();
+
+            // Assert
+            Assert.AreEqual(EnemyState.Stunned, turret.CurrentState);
+
+            // Act
+            for (int i = 0; i < 10 && turret.CurrentState != EnemyState.Idle; i++)
+            {
+                turret.Tick(OneFrameDelta);
+            }
+
+            // Assert
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+            Assert.IsFalse(turret.IsTelegraphing);
+
+            // Act
+            turret.Tick(turret.FireInterval);
+
+            // Assert
+            Assert.IsTrue(turret.IsTelegraphing);
+            Assert.AreEqual(EnemyState.Idle, turret.CurrentState);
+
+            // Act
+            turret.Tick(turret.TelegraphDuration);
+
+            // Assert
+            Assert.AreEqual(EnemyState.Attack, turret.CurrentState);
+
+            UnityEngine.Object.DestroyImmediate(turretGo);
+            UnityEngine.Object.DestroyImmediate(playerGo);
         }
 
         [Test]

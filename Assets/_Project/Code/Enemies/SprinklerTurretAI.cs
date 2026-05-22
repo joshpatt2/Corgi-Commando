@@ -19,15 +19,26 @@ namespace CorgiCommando.Enemies
         /// <summary>Whether the turret is currently in its telegraph phase.</summary>
         public bool IsTelegraphing { get; private set; }
 
-        public override void Tick(float deltaTime)
+        protected override void OnStunnedTick()
         {
-            base.Tick(deltaTime);
+            IsTelegraphing = false;
+            _telegraphTimer = 0f;
+            base.OnStunnedTick();
+        }
 
-            if (CurrentState == EnemyState.Dead)
-            {
-                return;
-            }
+        protected override void OnRecoverTick()
+        {
+            TransitionTo(EnemyState.Idle);
+        }
 
+        protected override void OnAttackTick()
+        {
+            TransitionTo(EnemyState.Idle);
+            _cooldownTimer = 0f;
+        }
+
+        protected override void OnActiveTick(float deltaTime)
+        {
             if (IsTelegraphing)
             {
                 _telegraphTimer += deltaTime;
@@ -38,13 +49,6 @@ namespace CorgiCommando.Enemies
                     TransitionTo(EnemyState.Attack);
                 }
 
-                return;
-            }
-
-            if (CurrentState == EnemyState.Attack)
-            {
-                TransitionTo(EnemyState.Idle);
-                _cooldownTimer = 0f;
                 return;
             }
 
