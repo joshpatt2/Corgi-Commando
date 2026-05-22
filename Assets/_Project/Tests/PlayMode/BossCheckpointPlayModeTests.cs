@@ -16,6 +16,7 @@ namespace CorgiCommando.Tests.PlayMode
     public class BossCheckpointPlayModeTests
     {
         private static readonly BindingFlags InstancePrivate = BindingFlags.Instance | BindingFlags.NonPublic;
+        private const int DamageToKeepBossInPhase2 = 80;
 
         [UnityTest]
         public IEnumerator RunState_PartyWipeAtBoss_ResetsBossToPhase1()
@@ -24,7 +25,7 @@ namespace CorgiCommando.Tests.PlayMode
             fixture.Bootstrap.OnBossDoorTriggered();
 
             fixture.Boss.CheckPhaseTransition(150, 200);
-            fixture.Boss.GetEntityComponent<IHealthComponent>().TakeDamage(80);
+            fixture.Boss.GetEntityComponent<IHealthComponent>().TakeDamage(DamageToKeepBossInPhase2);
             Assert.AreEqual(2, fixture.Boss.CurrentPhase);
 
             fixture.KillPlayers();
@@ -44,7 +45,7 @@ namespace CorgiCommando.Tests.PlayMode
             fixture.Bootstrap.OnBossDoorTriggered();
 
             var playerHealth = fixture.Player.GetEntityComponent<IHealthComponent>();
-            playerHealth.TakeDamage(999);
+            playerHealth.TakeDamage(playerHealth.MaxHP);
 
             yield return null;
             yield return null;
@@ -160,7 +161,8 @@ namespace CorgiCommando.Tests.PlayMode
 
             public void KillPlayers()
             {
-                Player.GetEntityComponent<IHealthComponent>().TakeDamage(999);
+                var health = Player.GetEntityComponent<IHealthComponent>();
+                health.TakeDamage(health.MaxHP);
             }
 
             public void Dispose()
