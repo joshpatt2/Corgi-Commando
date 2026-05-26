@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,6 +14,8 @@ namespace CorgiCommando.Tests.EditMode
     [TestFixture]
     public class UITests
     {
+        private static readonly BindingFlags InstancePrivate = BindingFlags.Instance | BindingFlags.NonPublic;
+
         [Test]
         public void ComboCounterUI_SetComboCount_UpdatesDisplay()
         {
@@ -190,7 +193,8 @@ namespace CorgiCommando.Tests.EditMode
         {
             // Arrange
             var go = new GameObject("HUD");
-            go.AddComponent<HUDController>();
+            var hud = go.AddComponent<HUDController>();
+            InvokePrivate(hud, "Awake");
 
             // Assert
             Assert.NotNull(go.transform.Find("HUDCanvas/P1HUD"));
@@ -208,6 +212,13 @@ namespace CorgiCommando.Tests.EditMode
             Assert.NotNull(go.GetComponent<HUDController>().GetSpecialMeterFillImage(0));
 
             UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        private static void InvokePrivate(MonoBehaviour component, string methodName)
+        {
+            var method = component.GetType().GetMethod(methodName, InstancePrivate);
+            Assert.NotNull(method, $"Expected method '{methodName}' to exist.");
+            method.Invoke(component, null);
         }
     }
 }
