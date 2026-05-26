@@ -69,14 +69,6 @@ namespace CorgiCommando.Core
         }
 
         /// <summary>
-        /// Called when the full active party is wiped.
-        /// </summary>
-        public void OnPartyWipe()
-        {
-            TriggerPartyWipe();
-        }
-
-        /// <summary>
         /// Triggers the party-wipe event.
         /// </summary>
         public void TriggerPartyWipe()
