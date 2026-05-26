@@ -163,6 +163,11 @@ namespace CorgiCommando.Core
                 if (includeInLowHpTriggerCohort)
                 {
                     _lowHpTriggerCohort.Add(spawnedEnemy);
+                    var health = spawnedEnemy.GetEntityComponent<IHealthComponent>();
+                    if (health != null)
+                    {
+                        health.OnDamaged += HandleCohortEnemyDamaged;
+                    }
                 }
 
                 AliveEnemyCount++;
@@ -196,6 +201,11 @@ namespace CorgiCommando.Core
                 SpawnGroupEnemies(pending.Group, includeInLowHpTriggerCohort: false);
                 _pendingLowHpSpawnGroups.RemoveAt(i);
             }
+        }
+
+        private void HandleCohortEnemyDamaged(int _)
+        {
+            EvaluateLowHpSpawnGroups();
         }
 
         private int CalculateLowHpTriggerCohortHp()
@@ -380,6 +390,18 @@ namespace CorgiCommando.Core
                 }
             }
 
+            foreach (var enemy in _lowHpTriggerCohort)
+            {
+                if (enemy != null)
+                {
+                    var health = enemy.GetEntityComponent<IHealthComponent>();
+                    if (health != null)
+                    {
+                        health.OnDamaged -= HandleCohortEnemyDamaged;
+                    }
+                }
+            }
+
             _pendingLowHpSpawnGroups.Clear();
             _currentWaveEnemies.Clear();
             _aliveWaveEnemies.Clear();
@@ -407,7 +429,15 @@ namespace CorgiCommando.Core
                 return false;
             }
 
-            _lowHpTriggerCohort.Remove(enemy);
+            if (_lowHpTriggerCohort.Remove(enemy))
+            {
+                var health = enemy.GetEntityComponent<IHealthComponent>();
+                if (health != null)
+                {
+                    health.OnDamaged -= HandleCohortEnemyDamaged;
+                }
+            }
+
             // Keep legacy death-count behavior centralized here for both NotifyEnemyDied and OnDeath callbacks.
             HandleEnemyDiedCount();
             return true;
