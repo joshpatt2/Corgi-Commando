@@ -6,6 +6,8 @@ namespace CorgiCommando.Core
     /// <summary>
     /// Concrete input buffer. Stores timestamped input events for consumption
     /// by combat and movement systems. Purges stale inputs each frame.
+    /// Move axis is derived from the most recent MoveLeft/MoveRight/MoveUp/MoveDown
+    /// input (axis payload when provided, otherwise the action's unit direction).
     /// </summary>
     public class InputBuffer : IInputBuffer
     {
@@ -18,7 +20,11 @@ namespace CorgiCommando.Core
 
         public void RecordInput(InputAction action, float timestamp, Vector2 axisValue = default)
         {
-            _bufferedInputs.Add(new BufferedInput(action, timestamp, axisValue));
+            Vector2 resolvedAxisValue = IsMoveAction(action)
+                ? ResolveMoveAxis(action, axisValue)
+                : axisValue;
+
+            _bufferedInputs.Add(new BufferedInput(action, timestamp, resolvedAxisValue));
 
             if (timestamp > _latestTimestamp)
             {
@@ -27,7 +33,7 @@ namespace CorgiCommando.Core
 
             if (IsMoveAction(action))
             {
-                _latestMoveAxis = axisValue;
+                _latestMoveAxis = resolvedAxisValue;
             }
         }
 
@@ -119,6 +125,23 @@ namespace CorgiCommando.Core
                    action == InputAction.MoveRight ||
                    action == InputAction.MoveUp ||
                    action == InputAction.MoveDown;
+        }
+
+        private static Vector2 ResolveMoveAxis(InputAction action, Vector2 axisValue)
+        {
+            if (axisValue != Vector2.zero)
+            {
+                return axisValue;
+            }
+
+            return action switch
+            {
+                InputAction.MoveLeft => Vector2.left,
+                InputAction.MoveRight => Vector2.right,
+                InputAction.MoveUp => Vector2.up,
+                InputAction.MoveDown => Vector2.down,
+                _ => axisValue
+            };
         }
 
         private void RecalculateDerivedState()

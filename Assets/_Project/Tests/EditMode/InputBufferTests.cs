@@ -168,5 +168,15 @@ namespace CorgiCommando.Tests.EditMode
             Assert.AreEqual(1f, axis.x, 0.01f);
             Assert.AreEqual(1f, axis.y, 0.01f);
         }
+
+        [Test]
+        public void RecordInput_MoveRightWithoutAxis_UsesDirectionalFallback()
+        {
+            // Arrange / Act
+            _buffer.RecordInput(InputAction.MoveRight, 1.0f);
+
+            // Assert
+            Assert.AreEqual(Vector2.right, _buffer.GetMoveAxis());
+        }
     }
 }
