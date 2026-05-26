@@ -251,20 +251,26 @@ namespace CorgiCommando.UI
             _safeAreaRectTransform = _cachedRectTransform;
             if (_safeAreaRectTransform == null)
             {
-                var canvasGO = new GameObject("HUDCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                var canvasGO = new GameObject("HUDCanvas");
                 canvasGO.transform.SetParent(transform, false);
 
-                _safeAreaRectTransform = canvasGO.GetComponent<RectTransform>();
-                _safeAreaRectTransform.anchorMin = Vector2.zero;
-                _safeAreaRectTransform.anchorMax = Vector2.one;
-                _safeAreaRectTransform.offsetMin = Vector2.zero;
-                _safeAreaRectTransform.offsetMax = Vector2.zero;
+                _safeAreaRectTransform = canvasGO.AddComponent<RectTransform>();
+                if (_safeAreaRectTransform != null)
+                {
+                    _safeAreaRectTransform.anchorMin = Vector2.zero;
+                    _safeAreaRectTransform.anchorMax = Vector2.one;
+                    _safeAreaRectTransform.offsetMin = Vector2.zero;
+                    _safeAreaRectTransform.offsetMax = Vector2.zero;
+                }
 
-                var canvas = canvasGO.GetComponent<Canvas>();
+                var canvas = canvasGO.AddComponent<Canvas>();
                 if (canvas != null)
                 {
                     canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 }
+
+                canvasGO.AddComponent<CanvasScaler>();
+                canvasGO.AddComponent<GraphicRaycaster>();
             }
 
             BuildPlayerPanel(0, true);
