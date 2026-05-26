@@ -14,6 +14,7 @@ namespace CorgiCommando.Tests.PlayMode
     public class SceneBootstrapPlayModeTests
     {
         private static readonly BindingFlags InstancePrivate = BindingFlags.Instance | BindingFlags.NonPublic;
+        private const float MovementObservationDelaySeconds = 0.02f;
 
         [UnityTest]
         public IEnumerator SceneBootstrap_PressMoveRight_CorgiTranslates()
@@ -53,7 +54,7 @@ namespace CorgiCommando.Tests.PlayMode
             inputBuffer.RecordInput(InputAction.MoveRight, Time.time, new Vector2(1f, 0f));
             Assert.AreEqual(new Vector2(1f, 0f), inputBuffer.GetMoveAxis());
 
-            yield return new WaitForSeconds(0.02f);
+            yield return new WaitForSeconds(MovementObservationDelaySeconds);
 
             Assert.Greater(player.transform.position.x, startX);
 

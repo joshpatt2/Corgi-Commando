@@ -172,8 +172,10 @@ namespace CorgiCommando.Tests.EditMode
         [Test]
         public void RecordInput_MoveRightWithoutAxis_UsesDirectionalFallback()
         {
+            const float testTimestamp = 1.0f;
+
             // Arrange / Act
-            _buffer.RecordInput(InputAction.MoveRight, 1.0f);
+            _buffer.RecordInput(InputAction.MoveRight, testTimestamp);
 
             // Assert
             Assert.AreEqual(Vector2.right, _buffer.GetMoveAxis());
