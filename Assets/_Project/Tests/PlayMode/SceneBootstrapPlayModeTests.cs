@@ -14,6 +14,7 @@ namespace CorgiCommando.Tests.PlayMode
     public class SceneBootstrapPlayModeTests
     {
         private static readonly BindingFlags InstancePrivate = BindingFlags.Instance | BindingFlags.NonPublic;
+        private const float MovementObservationDelaySeconds = 0.02f;
 
         [UnityTest]
         public IEnumerator SceneBootstrap_PressMoveRight_CorgiTranslates()
@@ -51,13 +52,9 @@ namespace CorgiCommando.Tests.PlayMode
 
             float startX = player.transform.position.x;
             inputBuffer.RecordInput(InputAction.MoveRight, Time.time, new Vector2(1f, 0f));
+            Assert.AreEqual(new Vector2(1f, 0f), inputBuffer.GetMoveAxis());
 
-            // First PlayMode update can have Time.deltaTime == 0, and KinematicMovementController.Tick
-            // applies translation as velocity * deltaTime. Retry a few ticks to observe real movement.
-            for (int retryCount = 0; retryCount < 3 && player.transform.position.x <= startX; retryCount++)
-            {
-                yield return null;
-            }
+            yield return new WaitForSeconds(MovementObservationDelaySeconds);
 
             Assert.Greater(player.transform.position.x, startX);
 

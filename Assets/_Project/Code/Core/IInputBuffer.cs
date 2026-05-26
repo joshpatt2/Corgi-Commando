@@ -16,7 +16,11 @@ namespace CorgiCommando.Core
         /// </summary>
         /// <param name="action">The action performed.</param>
         /// <param name="timestamp">Time the input occurred (seconds).</param>
-        /// <param name="axisValue">Analog axis value if applicable.</param>
+        /// <param name="axisValue">
+        /// Analog axis value if applicable. For MoveLeft/MoveRight/MoveUp/MoveDown,
+        /// this value drives GetMoveAxis(). If omitted (Vector2.zero), the buffer
+        /// falls back to the action's unit direction.
+        /// </param>
         void RecordInput(InputAction action, float timestamp, Vector2 axisValue = default);
 
         /// <summary>
