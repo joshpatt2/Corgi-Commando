@@ -485,6 +485,7 @@ MonoBehaviour:
   _bossDoorTriggerHalfWidth: 1.5
   _bossSpawnPoint: {fileID: 930000001}
   _whiskerbotData: {fileID: 11400000, guid: 2e1d8a7d71e344dd889c579966ca4d04, type: 2}
+  _whiskerbotPrefab: {fileID: 100100000, guid: 33a562eac6e24ffc8f2c6be807d7fd8a, type: 3}
   _waveThreeWeaponSpawnPoints:
   - {fileID: 940000001}
   - {fileID: 950000001}

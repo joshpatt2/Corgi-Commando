@@ -27,11 +27,13 @@ namespace CorgiCommando.Core
         [SerializeField] private float _bossDoorTriggerHalfWidth = 1.5f;
         [SerializeField] private Transform _bossSpawnPoint;
         [SerializeField] private EnemyData _whiskerbotData;
+        [SerializeField] private GameObject _whiskerbotPrefab;
         [SerializeField] private Transform[] _waveThreeWeaponSpawnPoints;
         [SerializeField] private GameObject[] _environmentalWeaponPrefabs;
 
         private CorgiController _playerOne;
         private BossBannerUI _bossBanner;
+        private bool _weaponsSpawned;
 
         public bool IsArenaTriggered { get; private set; }
         public bool IsBossDoorUnlocked { get; private set; }
@@ -60,9 +62,8 @@ namespace CorgiCommando.Core
             if (_spawnManager != null)
             {
                 _spawnManager.OnWaveCleared += HandleWaveCleared;
+                _spawnManager.OnWaveStarted += HandleWaveStarted;
             }
-
-            SpawnEnvironmentalWeapons();
         }
 
         private void Update()
@@ -72,12 +73,12 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            if (!IsArenaTriggered && IsInsideTrigger(_playerOne.transform.position.x, _arenaTriggerPoint, _arenaTriggerHalfWidth))
+            if (!IsArenaTriggered && IsPastTriggerX(_playerOne.transform.position.x, _arenaTriggerPoint, _arenaTriggerHalfWidth))
             {
                 TriggerArena();
             }
 
-            if (IsBossDoorUnlocked && !IsBossSpawned && IsInsideTrigger(_playerOne.transform.position.x, _bossDoorTriggerPoint, _bossDoorTriggerHalfWidth))
+            if (IsBossDoorUnlocked && !IsBossSpawned && IsPastTriggerX(_playerOne.transform.position.x, _bossDoorTriggerPoint, _bossDoorTriggerHalfWidth))
             {
                 SpawnWhiskerbot();
             }
@@ -88,6 +89,7 @@ namespace CorgiCommando.Core
             if (_spawnManager != null)
             {
                 _spawnManager.OnWaveCleared -= HandleWaveCleared;
+                _spawnManager.OnWaveStarted -= HandleWaveStarted;
             }
         }
 
@@ -124,9 +126,19 @@ namespace CorgiCommando.Core
             IsBossDoorUnlocked = true;
         }
 
+        private void HandleWaveStarted(int startedWaveIndex)
+        {
+            if (startedWaveIndex != 2)
+            {
+                return;
+            }
+
+            SpawnEnvironmentalWeapons();
+        }
+
         private void SpawnEnvironmentalWeapons()
         {
-            if (_environmentalWeaponPrefabs == null || _waveThreeWeaponSpawnPoints == null)
+            if (_weaponsSpawned || _environmentalWeaponPrefabs == null || _waveThreeWeaponSpawnPoints == null)
             {
                 return;
             }
@@ -143,6 +155,8 @@ namespace CorgiCommando.Core
 
                 Instantiate(prefab, spawnPoint.position, Quaternion.identity);
             }
+
+            _weaponsSpawned = true;
         }
 
         private void SpawnWhiskerbot()
@@ -152,25 +166,42 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            var bossGo = new GameObject("Whiskerbot");
-            bossGo.transform.position = _bossSpawnPoint != null ? _bossSpawnPoint.position : transform.position;
+            var spawnPosition = _bossSpawnPoint != null ? _bossSpawnPoint.position : transform.position;
+            var bossGo = _whiskerbotPrefab != null
+                ? Instantiate(_whiskerbotPrefab, spawnPosition, Quaternion.identity)
+                : new GameObject("Whiskerbot");
 
-            bossGo.AddComponent<KinematicMovementController>();
-
-            var sprite = bossGo.AddComponent<SpriteRenderer>();
-            sprite.color = _whiskerbotData != null ? _whiskerbotData.placeholderColor : Color.red;
-
-            var boss = bossGo.AddComponent<WhiskerbotController>();
-            if (_whiskerbotData != null)
+            if (_whiskerbotPrefab == null)
             {
-                boss.Initialize(_whiskerbotData);
+                bossGo.AddComponent<KinematicMovementController>();
+                var sprite = bossGo.AddComponent<SpriteRenderer>();
+                sprite.color = _whiskerbotData != null ? _whiskerbotData.placeholderColor : Color.red;
+
+                var fallbackBoss = bossGo.AddComponent<WhiskerbotController>();
+                if (_whiskerbotData != null)
+                {
+                    fallbackBoss.Initialize(_whiskerbotData);
+                }
             }
 
-            _bossBanner ??= FindObjectOfType<BossBannerUI>(true);
-            if (_bossBanner != null)
+            var boss = bossGo.GetComponent<WhiskerbotController>();
+            if (boss == null)
             {
-                int maxHP = _whiskerbotData != null ? _whiskerbotData.maxHP : 1;
-                string bossName = _whiskerbotData != null ? _whiskerbotData.enemyName : "Whiskerbot";
+                boss = bossGo.AddComponent<WhiskerbotController>();
+                if (_whiskerbotData != null)
+                {
+                    boss.Initialize(_whiskerbotData);
+                }
+            }
+
+            var setup = bossGo.GetComponent<WhiskerbotPrefabSetup>();
+            var bossData = setup != null ? setup.EnemyData : _whiskerbotData;
+
+            _bossBanner ??= FindObjectOfType<BossBannerUI>(true);
+            if (_bossBanner != null && boss != null)
+            {
+                int maxHP = bossData != null ? bossData.maxHP : 1;
+                string bossName = bossData != null ? bossData.enemyName : "Whiskerbot";
                 _bossBanner.Show(bossName, maxHP, maxHP);
             }
 
@@ -192,7 +223,7 @@ namespace CorgiCommando.Core
             }
         }
 
-        private static bool IsInsideTrigger(float xPosition, Transform triggerPoint, float halfWidth)
+        private static bool IsPastTriggerX(float xPosition, Transform triggerPoint, float halfWidth)
         {
             if (triggerPoint == null)
             {
