@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a22fed03327a4ed88187c3b88990a41, type: 3}
+  m_Name: Whiskerbot
+  m_EditorClassIdentifier: 
+  enemyName: Whiskerbot
+  placeholderColor: {r: 0.9, g: 0.2, b: 0.2, a: 1}
+  maxHP: 350
+  moveSpeed: 2
+  depthSpeed: 1.5
+  primaryAttack: {fileID: 11400000, guid: 9a8c0df4da8f46f9b79ea562d2f3e970, type: 2}
+  aggroRange: 14
+  attackRange: 2.5
+  behaviorPreset: 4
+  baseTreatsDrop: 50
+  comboFinisherBonus: 20
+  pilotMaxHP: 120
