@@ -29,6 +29,7 @@ namespace CorgiCommando.Core
         [SerializeField] private SpawnManager _spawnManager;
         [SerializeField] private ArenaCameraLock _arenaCameraLock;
         [SerializeField] private GroupTargetCamera _groupTargetCamera;
+        [SerializeField] private ScreenShakeHandler _screenShakeHandler;
 
         private readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
         private readonly List<CorgiController> _activePlayers = new List<CorgiController>();
@@ -67,6 +68,8 @@ namespace CorgiCommando.Core
             {
                 _activePlayers[i]?.SetCombatSystem(_combatSystem);
             }
+
+            _screenShakeHandler?.SetCombatSystem(_combatSystem);
 
             if (_spawnManager != null)
             {
@@ -149,6 +152,7 @@ namespace CorgiCommando.Core
             _spawnManager ??= FindObjectOfType<SpawnManager>();
             _arenaCameraLock ??= FindObjectOfType<ArenaCameraLock>();
             _groupTargetCamera ??= FindObjectOfType<GroupTargetCamera>();
+            _screenShakeHandler ??= FindObjectOfType<ScreenShakeHandler>();
         }
 
         private CorgiController FindPlayerOne()

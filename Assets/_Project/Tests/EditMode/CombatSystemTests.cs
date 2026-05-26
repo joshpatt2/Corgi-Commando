@@ -2,6 +2,7 @@ using System;
 using NUnit.Framework;
 using UnityEngine;
 using CorgiCommando.Core;
+using CorgiCommando.Camera;
 using CorgiCommando.Combat;
 using CorgiCommando.Data;
 
@@ -14,12 +15,18 @@ namespace CorgiCommando.Tests.EditMode
     [TestFixture]
     public class CombatSystemTests
     {
+        private const float HeavyShakeIntensity = 0.2f;
+        private const float SpecialShakeIntensity = 0.3f;
+        private const float NoShakeIntensity = 0f;
+
         private CombatSystem _combat;
         private GameObject _attackerGo;
         private GameObject _targetGo;
         private Entity _attacker;
         private Entity _target;
         private AttackData _punchData;
+        private GameObject _screenShakeGo;
+        private TestScreenShakeHandler _screenShakeHandler;
 
         [SetUp]
         public void SetUp()
@@ -50,6 +57,10 @@ namespace CorgiCommando.Tests.EditMode
             _punchData.hitstopFrames = 4;
             _punchData.hitType = HitType.Light;
             _punchData.hitboxRect = new Rect(0.5f, -0.25f, 1f, 0.5f);
+
+            _screenShakeGo = new GameObject("ScreenShakeHandler");
+            _screenShakeHandler = _screenShakeGo.AddComponent<TestScreenShakeHandler>();
+            _screenShakeHandler.SetCombatSystem(_combat);
         }
 
         [TearDown]
@@ -57,6 +68,7 @@ namespace CorgiCommando.Tests.EditMode
         {
             UnityEngine.Object.DestroyImmediate(_attackerGo);
             UnityEngine.Object.DestroyImmediate(_targetGo);
+            UnityEngine.Object.DestroyImmediate(_screenShakeGo);
             UnityEngine.Object.DestroyImmediate(_punchData);
         }
 
@@ -288,6 +300,137 @@ namespace CorgiCommando.Tests.EditMode
             // Assert
             Assert.IsFalse(consumed);
             Assert.AreEqual(0f, _combat.GetSpecialMeter(_attacker));
+        }
+
+        [Test]
+        public void Combat_HeavyHit_FiresImpulse()
+        {
+            // Arrange
+            _attackerGo.transform.position = Vector3.zero;
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _screenShakeHandler.MinimumShakeIntensity = 0.05f;
+            var heavyAttack = CreateAttackData("HeavyKick", HeavyShakeIntensity, HitType.Heavy);
+
+            try
+            {
+                // Act
+                _combat.ResolveAttack(_attacker, heavyAttack, new[] { _target });
+
+                // Assert
+                Assert.AreEqual(1, _screenShakeHandler.ImpulseCount);
+                Assert.Greater(_screenShakeHandler.LastMagnitude, 0f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(heavyAttack);
+            }
+        }
+
+        [Test]
+        public void Combat_LightHit_DoesNotFireImpulse()
+        {
+            // Arrange
+            _attackerGo.transform.position = Vector3.zero;
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _screenShakeHandler.MinimumShakeIntensity = 0.05f;
+            var lightAttack = CreateAttackData("LightJab", NoShakeIntensity, HitType.Light);
+
+            try
+            {
+                // Act
+                _combat.ResolveAttack(_attacker, lightAttack, new[] { _target });
+
+                // Assert
+                Assert.AreEqual(0, _screenShakeHandler.ImpulseCount);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(lightAttack);
+            }
+        }
+
+        [Test]
+        public void Combat_Special_FiresImpulseWithHigherMagnitude()
+        {
+            // Arrange
+            _attackerGo.transform.position = Vector3.zero;
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _screenShakeHandler.MinimumShakeIntensity = 0.05f;
+            var heavyAttack = CreateAttackData("HeavyKick", HeavyShakeIntensity, HitType.Heavy);
+            var specialAttack = CreateAttackData("BarkShockwave", SpecialShakeIntensity, HitType.Special);
+
+            try
+            {
+                // Act
+                _combat.ResolveAttack(_attacker, heavyAttack, new[] { _target });
+                float heavyMagnitude = _screenShakeHandler.LastMagnitude;
+                _combat.ResolveAttack(_attacker, specialAttack, new[] { _target });
+                float specialMagnitude = _screenShakeHandler.LastMagnitude;
+
+                // Assert
+                Assert.AreEqual(2, _screenShakeHandler.ImpulseCount);
+                Assert.Greater(specialMagnitude, heavyMagnitude);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(heavyAttack);
+                UnityEngine.Object.DestroyImmediate(specialAttack);
+            }
+        }
+
+        [Test]
+        public void Combat_HitWithHitstop_SchedulesDelayedImpulse()
+        {
+            // Arrange
+            _attackerGo.transform.position = Vector3.zero;
+            _targetGo.transform.position = new Vector3(1f, 0f, 0f);
+            _screenShakeHandler.MinimumShakeIntensity = 0.05f;
+            var heavyAttack = CreateAttackData("HeavyKick", HeavyShakeIntensity, HitType.Heavy, hitstopFrames: 6);
+
+            try
+            {
+                // Act
+                _combat.ResolveAttack(_attacker, heavyAttack, new[] { _target });
+
+                // Assert
+                Assert.AreEqual(0, _screenShakeHandler.ImpulseCount);
+                Assert.AreEqual(0.1f, _screenShakeHandler.LastScheduledDelay, 0.001f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(heavyAttack);
+            }
+        }
+
+        private static AttackData CreateAttackData(string attackName, float shakeIntensity, HitType hitType, int hitstopFrames = 0)
+        {
+            var attack = ScriptableObject.CreateInstance<AttackData>();
+            attack.attackName = attackName;
+            attack.damage = 10;
+            attack.knockbackForce = new Vector3(3f, 1f, 0f);
+            attack.hitstopFrames = hitstopFrames;
+            attack.hitType = hitType;
+            attack.screenShakeIntensity = shakeIntensity;
+            attack.hitboxRect = new Rect(0.5f, -0.25f, 1f, 0.5f);
+            return attack;
+        }
+
+        private sealed class TestScreenShakeHandler : ScreenShakeHandler
+        {
+            public int ImpulseCount { get; private set; }
+            public float LastMagnitude { get; private set; }
+            public float LastScheduledDelay { get; private set; } = -1f;
+
+            protected override void EmitImpulse(float magnitude)
+            {
+                ImpulseCount++;
+                LastMagnitude = magnitude;
+            }
+
+            protected override void ScheduleDelayedImpulse(float delaySeconds, float magnitude)
+            {
+                LastScheduledDelay = delaySeconds;
+            }
         }
     }
 }

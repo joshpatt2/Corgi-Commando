@@ -128,5 +128,6 @@ namespace CorgiCommando.Camera
 
             Tick(Time.deltaTime);
         }
+
     }
 }

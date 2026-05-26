@@ -2,7 +2,8 @@
     "name": "CorgiCommando",
     "rootNamespace": "CorgiCommando",
     "references": [
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
