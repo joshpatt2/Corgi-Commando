@@ -12,6 +12,17 @@ namespace CorgiCommando.Tests.PlayMode
     [TestFixture]
     public class SpawnManagerPlayModeTests
     {
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            var enemies = Object.FindObjectsOfType<EnemyAI>();
+            foreach (var enemy in enemies)
+            {
+                Object.Destroy(enemy.gameObject);
+            }
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator SpawnManager_SpawnCurrentWave_InstantiatesEnemiesAtPositions()
         {

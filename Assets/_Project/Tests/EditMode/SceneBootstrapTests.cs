@@ -51,18 +51,19 @@ namespace CorgiCommando.Tests.EditMode
         public void SceneBootstrap_OnEnemyDied_UnregistersEnemyFromTicking()
         {
             using var fixture = new SceneBootstrapFixture();
+
+            EnemyAI capturedEnemy = null;
+            fixture.SpawnManager.OnEnemySpawned += e => { capturedEnemy ??= e; };
+
             InvokePrivate(fixture.Bootstrap, "Start");
             int initialCount = fixture.Bootstrap.ActiveEnemyCount;
 
-            var enemyGo = new GameObject("Enemy");
-            var enemy = enemyGo.AddComponent<EnemyAI>();
-            enemy.Initialize(fixture.EnemyData);
+            Assert.That(capturedEnemy, Is.Not.Null, "Expected at least one enemy to be spawned by Start().");
+            var health = capturedEnemy.GetEntityComponent<IHealthComponent>();
+            Assert.That(health, Is.Not.Null);
+            health.TakeDamage(int.MaxValue);
 
-            fixture.SpawnManager.NotifyEnemySpawned(enemy);
-            fixture.SpawnManager.NotifyEnemyDied(enemy);
-
-            Assert.AreEqual(initialCount, fixture.Bootstrap.ActiveEnemyCount);
-            UnityEngine.Object.DestroyImmediate(enemyGo);
+            Assert.AreEqual(initialCount - 1, fixture.Bootstrap.ActiveEnemyCount);
         }
 
         [Test]
