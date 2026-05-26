@@ -52,7 +52,8 @@ namespace CorgiCommando.Tests.PlayMode
             float startX = player.transform.position.x;
             inputBuffer.RecordInput(InputAction.MoveRight, Time.time, new Vector2(1f, 0f));
 
-            // Some PlayMode frames can report zero delta time; allow a few bootstrap ticks.
+            // First PlayMode update can have Time.deltaTime == 0, and KinematicMovementController.Tick
+            // applies translation as velocity * deltaTime. Retry a few ticks to observe real movement.
             for (int retryCount = 0; retryCount < 3 && player.transform.position.x <= startX; retryCount++)
             {
                 yield return null;

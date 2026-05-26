@@ -91,7 +91,7 @@ namespace CorgiCommando.Core
             _combatSystem?.Tick(deltaTime);
             OnTickStageExecuted?.Invoke(SceneTickStage.Combat);
 
-            TickActivePlayers(deltaTime);
+            _playerOne?.Tick(deltaTime);
             OnTickStageExecuted?.Invoke(SceneTickStage.PlayerControllers);
 
             for (int i = 0; i < _activeEnemies.Count; i++)
@@ -177,23 +177,6 @@ namespace CorgiCommando.Core
                 {
                     _activePlayers.Add(player);
                 }
-            }
-        }
-
-        private void TickActivePlayers(float deltaTime)
-        {
-            CacheActivePlayers();
-
-            for (int i = 0; i < _activePlayers.Count; i++)
-            {
-                CorgiController player = _activePlayers[i];
-                if (player == null)
-                {
-                    continue;
-                }
-
-                player.SetCombatSystem(_combatSystem);
-                player.Tick(deltaTime);
             }
         }
 
