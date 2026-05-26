@@ -109,8 +109,7 @@ namespace CorgiCommando.Tests.PlayMode
             private readonly GameObject _root;
             private readonly GameObject _hudRoot;
             private readonly GameObject _playerGo;
-            private readonly GameObject _dummyEnemyGo;
-            private readonly EnemyAI _dummyEnemy;
+            private readonly GameObject _bossPrefab;
             private readonly GameObject[] _weaponPrefabs;
 
             public LevelBackyardFixture()
@@ -178,6 +177,7 @@ namespace CorgiCommando.Tests.PlayMode
                 _bossData.enemyName = "Whiskerbot";
                 _bossData.maxHP = 200;
                 _bossData.placeholderColor = Color.red;
+                _bossPrefab = CreateWhiskerbotPrefab(_bossData);
 
                 var playerSpawn = CreateMarker("PlayerSpawnPoint", new Vector3(-2f, -4.26f, 0f));
                 var arenaTrigger = CreateMarker("ArenaTriggerPoint", new Vector3(1.5f, -4.2f, 0f));
@@ -210,12 +210,9 @@ namespace CorgiCommando.Tests.PlayMode
                 SetPrivateField(Director, "_bossDoorTriggerPoint", bossTrigger);
                 SetPrivateField(Director, "_bossSpawnPoint", bossSpawn);
                 SetPrivateField(Director, "_whiskerbotData", _bossData);
+                SetPrivateField(Director, "_whiskerbotPrefab", _bossPrefab);
                 SetPrivateField(Director, "_waveThreeWeaponSpawnPoints", weaponSpawns);
                 SetPrivateField(Director, "_environmentalWeaponPrefabs", _weaponPrefabs);
-
-                _dummyEnemyGo = new GameObject("DummyEnemy");
-                _dummyEnemy = _dummyEnemyGo.AddComponent<EnemyAI>();
-                _dummyEnemy.Initialize(_enemyData);
             }
 
             public void ClearAllWaves()
@@ -223,10 +220,16 @@ namespace CorgiCommando.Tests.PlayMode
                 int guard = 10;
                 while (!Director.IsBossDoorUnlocked && guard-- > 0)
                 {
-                    int alive = SpawnManager.AliveEnemyCount;
-                    for (int i = 0; i < alive; i++)
+                    var aliveEnemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
+                    if (aliveEnemies.Length == 0)
                     {
-                        SpawnManager.NotifyEnemyDied(_dummyEnemy);
+                        continue;
+                    }
+
+                    for (int i = 0; i < aliveEnemies.Length; i++)
+                    {
+                        var health = aliveEnemies[i].GetEntityComponent<IHealthComponent>();
+                        health?.TakeDamage(int.MaxValue);
                     }
                 }
             }
@@ -236,7 +239,7 @@ namespace CorgiCommando.Tests.PlayMode
                 UnityEngine.Object.DestroyImmediate(_root);
                 UnityEngine.Object.DestroyImmediate(_hudRoot);
                 UnityEngine.Object.DestroyImmediate(_playerGo);
-                UnityEngine.Object.DestroyImmediate(_dummyEnemyGo);
+                UnityEngine.Object.DestroyImmediate(_bossPrefab);
 
                 for (int i = 0; i < _weaponPrefabs.Length; i++)
                 {
@@ -279,6 +282,17 @@ namespace CorgiCommando.Tests.PlayMode
                 go.transform.SetParent(_root.transform, false);
                 go.transform.position = position;
                 return go.transform;
+            }
+
+            private static GameObject CreateWhiskerbotPrefab(EnemyData bossData)
+            {
+                var prefab = new GameObject("WhiskerbotPrefab");
+                prefab.AddComponent<SpriteRenderer>();
+                prefab.AddComponent<KinematicMovementController>();
+                prefab.AddComponent<WhiskerbotController>();
+                var setup = prefab.AddComponent<WhiskerbotPrefabSetup>();
+                SetPrivateField(setup, "_enemyData", bossData);
+                return prefab;
             }
 
             private static void SetPrivateField<T>(object instance, string fieldName, T value)
