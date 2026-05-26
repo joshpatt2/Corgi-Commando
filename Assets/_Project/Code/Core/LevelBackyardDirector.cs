@@ -13,6 +13,8 @@ namespace CorgiCommando.Core
     /// </summary>
     public class LevelBackyardDirector : MonoBehaviour
     {
+        private const int WaveThreeIndex = 2;
+
         [SerializeField] private SceneBootstrap _sceneBootstrap;
         [SerializeField] private SpawnManager _spawnManager;
         [SerializeField] private ArenaCameraLock _arenaCameraLock;
@@ -128,7 +130,7 @@ namespace CorgiCommando.Core
 
         private void HandleWaveStarted(int startedWaveIndex)
         {
-            if (startedWaveIndex != 2)
+            if (startedWaveIndex != WaveThreeIndex)
             {
                 return;
             }
@@ -167,35 +169,39 @@ namespace CorgiCommando.Core
             }
 
             var spawnPosition = _bossSpawnPoint != null ? _bossSpawnPoint.position : transform.position;
-            var bossGo = _whiskerbotPrefab != null
-                ? Instantiate(_whiskerbotPrefab, spawnPosition, Quaternion.identity)
-                : new GameObject("Whiskerbot");
+            GameObject bossGo;
+            WhiskerbotController boss;
+            EnemyData bossData;
 
-            if (_whiskerbotPrefab == null)
+            if (_whiskerbotPrefab != null)
             {
+                bossGo = Instantiate(_whiskerbotPrefab, spawnPosition, Quaternion.identity);
+                boss = bossGo.GetComponent<WhiskerbotController>();
+                var setup = bossGo.GetComponent<WhiskerbotPrefabSetup>();
+                bossData = setup != null ? setup.EnemyData : null;
+
+                if (boss == null || bossData == null)
+                {
+                    Debug.LogWarning("Whiskerbot prefab is missing required setup/components; boss spawn aborted.", this);
+                    Destroy(bossGo);
+                    return;
+                }
+            }
+            else
+            {
+                bossGo = new GameObject("Whiskerbot");
+                bossGo.transform.position = spawnPosition;
                 bossGo.AddComponent<KinematicMovementController>();
                 var sprite = bossGo.AddComponent<SpriteRenderer>();
                 sprite.color = _whiskerbotData != null ? _whiskerbotData.placeholderColor : Color.red;
-
-                var fallbackBoss = bossGo.AddComponent<WhiskerbotController>();
-                if (_whiskerbotData != null)
-                {
-                    fallbackBoss.Initialize(_whiskerbotData);
-                }
-            }
-
-            var boss = bossGo.GetComponent<WhiskerbotController>();
-            if (boss == null)
-            {
                 boss = bossGo.AddComponent<WhiskerbotController>();
                 if (_whiskerbotData != null)
                 {
                     boss.Initialize(_whiskerbotData);
                 }
-            }
 
-            var setup = bossGo.GetComponent<WhiskerbotPrefabSetup>();
-            var bossData = setup != null ? setup.EnemyData : _whiskerbotData;
+                bossData = _whiskerbotData;
+            }
 
             _bossBanner ??= FindObjectOfType<BossBannerUI>(true);
             if (_bossBanner != null && boss != null)
