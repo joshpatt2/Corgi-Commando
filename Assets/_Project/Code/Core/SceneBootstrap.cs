@@ -11,6 +11,9 @@ using CorgiCommando.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace CorgiCommando.Core
 {
@@ -39,6 +42,7 @@ namespace CorgiCommando.Core
         [SerializeField] private Transform _bossIntroSpawnPoint;
         [SerializeField] private float _retryDelaySeconds = 2.5f;
         [SerializeField] private bool _reloadSceneOnGameOver = true;
+        [SerializeField] private string _levelSceneName = "Level_Backyard";
 
         private readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
         private readonly List<CorgiController> _activePlayers = new List<CorgiController>();
@@ -52,6 +56,7 @@ namespace CorgiCommando.Core
         private bool _isBossFightActive;
         private bool _partyWipeSequenceRunning;
         private bool _awaitingGameOverStartPress;
+        private bool _hasWarnedNoSubmitInputBackend;
 
         public event Action<SceneTickStage> OnTickStageExecuted;
         public event Action<string> OnPromptShown;
@@ -182,6 +187,11 @@ namespace CorgiCommando.Core
             if (_runState != null)
             {
                 _runState.OnPartyWiped -= HandlePartyWipe;
+            }
+
+            if (_bossController != null)
+            {
+                _bossController.OnDeath -= OnBossDied;
             }
 
             for (int i = 0; i < _activeEnemies.Count; i++)
@@ -341,9 +351,9 @@ namespace CorgiCommando.Core
         }
 
         /// <summary>
-        /// Enables/disables scene reload on game-over. Primarily used by tests.
+        /// Test seam only: enables/disables scene reload on game-over.
         /// </summary>
-        public void SetReloadSceneOnGameOver(bool enabled)
+        public void SetReloadEnabledForTesting(bool enabled)
         {
             _reloadSceneOnGameOver = enabled;
         }
@@ -424,6 +434,7 @@ namespace CorgiCommando.Core
                 player.TransitionTo(CorgiState.Idle);
             }
 
+            RefreshBossReferences();
             if (_bossController != null)
             {
                 _bossController.ResetToPhase1();
@@ -445,7 +456,7 @@ namespace CorgiCommando.Core
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetButtonDown("Submit"))
+            if (IsSubmitPressedThisFrame())
             {
                 ReloadLevelBackyard();
             }
@@ -455,11 +466,11 @@ namespace CorgiCommando.Core
         {
             _awaitingGameOverStartPress = false;
             _partyWipeSequenceRunning = false;
-            OnSceneReloadRequested?.Invoke("Level_Backyard");
+            OnSceneReloadRequested?.Invoke(_levelSceneName);
 
             if (_reloadSceneOnGameOver)
             {
-                SceneManager.LoadScene("Level_Backyard");
+                SceneManager.LoadScene(_levelSceneName);
             }
         }
 
@@ -506,7 +517,7 @@ namespace CorgiCommando.Core
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.fontSize = 42;
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.text = string.Empty;
             promptGo.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0.5f);
             promptGo.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0.5f);
@@ -521,6 +532,10 @@ namespace CorgiCommando.Core
             if (_bossController == null)
             {
                 _bossController = FindObjectOfType<WhiskerbotController>();
+                if (_bossController != null)
+                {
+                    _bossController.OnDeath += OnBossDied;
+                }
             }
 
             if (_bossBannerUI == null)
@@ -542,6 +557,37 @@ namespace CorgiCommando.Core
             }
 
             return Vector3.zero;
+        }
+
+        private void OnBossDied(Entity deadBoss)
+        {
+            _isBossFightActive = false;
+        }
+
+        private bool IsSubmitPressedThisFrame()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+            {
+                return true;
+            }
+
+            if (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame)
+            {
+                return true;
+            }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetKeyDown(KeyCode.Return) || Input.GetButtonDown("Submit");
+#else
+            if (!_hasWarnedNoSubmitInputBackend)
+            {
+                Debug.LogWarning("No input backend enabled for GAME OVER submit detection. Enable either Input System or Legacy Input Manager.");
+                _hasWarnedNoSubmitInputBackend = true;
+            }
+            return false;
+#endif
         }
     }
 }
