@@ -11,7 +11,7 @@ namespace CorgiCommando.UI
     public class BossBannerUI : MonoBehaviour
     {
         private const float PhaseFlashSeconds = 0.12f;
-        private const string DefaultFontName = "Arial.ttf";
+        private const string DefaultFontName = "LegacyRuntime.ttf";
         private static readonly WaitForSeconds PhaseFlashDelay = new WaitForSeconds(PhaseFlashSeconds);
 
         private Text _bossNameText;
