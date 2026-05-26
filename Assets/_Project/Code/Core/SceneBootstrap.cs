@@ -5,6 +5,7 @@ using CorgiCommando.Combat;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
 using CorgiCommando.Player;
+using CorgiCommando.Testing;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -112,6 +113,7 @@ namespace CorgiCommando.Core
         private void Update()
         {
             float deltaTime = Time.deltaTime;
+            PlaytestMetrics.LogFrameTime(deltaTime);
             OnTickStageExecuted?.Invoke(SceneTickStage.InputGather);
 
             _combatSystem?.Tick(deltaTime);

@@ -3,6 +3,7 @@ using System.Collections;
 using Cinemachine;
 using CorgiCommando.Combat;
 using CorgiCommando.Core;
+using CorgiCommando.Testing;
 using UnityEngine;
 
 namespace CorgiCommando.Camera
@@ -111,6 +112,11 @@ namespace CorgiCommando.Camera
             if (magnitude <= 0f)
             {
                 return;
+            }
+
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogScreenShake(magnitude, hitResult.HitType.ToString());
             }
 
             float delaySeconds = (float)hitResult.HitstopFrames / HitstopReferenceFramerate;

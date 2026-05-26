@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Core;
 using CorgiCommando.Data;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Combat
 {
@@ -93,7 +94,13 @@ namespace CorgiCommando.Combat
                 // Apply knockback
                 var knockbackReceiver = target.GetEntityComponent<KnockbackReceiver>();
                 if (knockbackReceiver != null)
+                {
                     knockbackReceiver.ApplyKnockback(attackData.knockbackForce);
+                    if (PlaytestMetrics.IsRecording)
+                    {
+                        PlaytestMetrics.LogKnockback(attackData.knockbackForce.magnitude, target != null ? target.name : string.Empty);
+                    }
+                }
 
                 // Build per-target result
                 var targetResult = new HitResult
@@ -124,6 +131,12 @@ namespace CorgiCommando.Combat
                         IsInHitstop = true;
                         _hitstopSecondsRemaining = attackData.hitstopFrames / TargetFrameRate;
                         OnHitstopStarted?.Invoke(attackData.hitstopFrames);
+
+                        if (PlaytestMetrics.IsRecording)
+                        {
+                            float startTime = Time.time;
+                            PlaytestMetrics.LogHitstop(startTime, startTime + _hitstopSecondsRemaining);
+                        }
                     }
 
                     // Increment combo once per attack call, not per enemy hit
