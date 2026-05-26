@@ -50,8 +50,7 @@ namespace CorgiCommando.Tests.PlayMode
             Assert.IsFalse(fixture.Director.IsBossDoorUnlocked);
             Assert.IsFalse(fixture.Director.IsBossSpawned);
 
-            fixture.ClearAllWaves();
-            yield return null;
+            yield return fixture.ClearAllWaves();
 
             Assert.IsTrue(fixture.Director.IsBossDoorUnlocked);
 
@@ -74,8 +73,7 @@ namespace CorgiCommando.Tests.PlayMode
             Assert.IsTrue(fixture.Director.IsArenaTriggered);
             Assert.Greater(fixture.SpawnManager.AliveEnemyCount, 0);
 
-            fixture.ClearAllWaves();
-            yield return null;
+            yield return fixture.ClearAllWaves();
 
             Assert.IsTrue(fixture.Director.IsBossDoorUnlocked);
 
@@ -215,7 +213,7 @@ namespace CorgiCommando.Tests.PlayMode
                 SetPrivateField(Director, "_environmentalWeaponPrefabs", _weaponPrefabs);
             }
 
-            public void ClearAllWaves()
+            public IEnumerator ClearAllWaves()
             {
                 int guard = 10;
                 while (!Director.IsBossDoorUnlocked && guard-- > 0)
@@ -223,6 +221,7 @@ namespace CorgiCommando.Tests.PlayMode
                     var aliveEnemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
                     if (aliveEnemies.Length == 0)
                     {
+                        yield return null;
                         continue;
                     }
 
@@ -231,6 +230,8 @@ namespace CorgiCommando.Tests.PlayMode
                         var health = aliveEnemies[i].GetEntityComponent<IHealthComponent>();
                         health?.TakeDamage(int.MaxValue);
                     }
+
+                    yield return null;
                 }
             }
 
