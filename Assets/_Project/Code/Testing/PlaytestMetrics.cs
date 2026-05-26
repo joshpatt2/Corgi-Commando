@@ -168,11 +168,11 @@ namespace CorgiCommando.Testing
 
             var report = new PlaytestReport
             {
-                hitstops = _hitstops,
-                knockbacks = _knockbacks,
-                screenShakes = _screenShakes,
-                stateTransitions = _stateTransitions,
-                frameTimes = _frameTimes
+                hitstops = new List<HitstopEntry>(_hitstops),
+                knockbacks = new List<KnockbackEntry>(_knockbacks),
+                screenShakes = new List<ScreenShakeEntry>(_screenShakes),
+                stateTransitions = new List<StateTransitionEntry>(_stateTransitions),
+                frameTimes = new List<FrameTimeEntry>(_frameTimes)
             };
 
             string json = JsonUtility.ToJson(report, true);

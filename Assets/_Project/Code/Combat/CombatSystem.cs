@@ -98,7 +98,7 @@ namespace CorgiCommando.Combat
                     knockbackReceiver.ApplyKnockback(attackData.knockbackForce);
                     if (PlaytestMetrics.IsRecording)
                     {
-                        PlaytestMetrics.LogKnockback(attackData.knockbackForce.magnitude, target != null ? target.name : string.Empty);
+                        PlaytestMetrics.LogKnockback(attackData.knockbackForce.magnitude, target.name);
                     }
                 }
 

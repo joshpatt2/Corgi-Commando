@@ -113,7 +113,10 @@ namespace CorgiCommando.Core
         private void Update()
         {
             float deltaTime = Time.deltaTime;
-            PlaytestMetrics.LogFrameTime(deltaTime);
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogFrameTime(deltaTime);
+            }
             OnTickStageExecuted?.Invoke(SceneTickStage.InputGather);
 
             _combatSystem?.Tick(deltaTime);
