@@ -59,7 +59,7 @@ namespace CorgiCommando.Tests.PlayMode
         public IEnumerator RunState_PartyWipePreBoss_NoBossCheckpoint_TriggersFullReload()
         {
             using var fixture = new BossCheckpointFixture();
-            fixture.Bootstrap.SetReloadSceneOnGameOver(false);
+            fixture.Bootstrap.SetReloadEnabledForTesting(false);
 
             string requestedScene = null;
             fixture.Bootstrap.OnSceneReloadRequested += sceneName => requestedScene = sceneName;
