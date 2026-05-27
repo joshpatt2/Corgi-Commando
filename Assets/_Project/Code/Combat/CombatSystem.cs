@@ -90,6 +90,7 @@ namespace CorgiCommando.Combat
                 var health = target.GetEntityComponent<IHealthComponent>();
                 if (health != null)
                 {
+                    bool wasAliveBeforeDamage = health.CurrentHP > 0;
                     health.TakeDamage(attackData.damage);
                     if (PlaytestMetrics.IsRecording)
                     {
@@ -98,7 +99,7 @@ namespace CorgiCommando.Combat
                             FormatEntityId(target),
                             attackData.damage,
                             attackData.hitType.ToString(),
-                            health.CurrentHP <= 0);
+                            wasAliveBeforeDamage && health.CurrentHP <= 0);
                     }
                 }
 

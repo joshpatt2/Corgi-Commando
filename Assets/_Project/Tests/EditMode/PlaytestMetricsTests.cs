@@ -144,6 +144,8 @@ namespace CorgiCommando.Tests.EditMode
             }
             finally
             {
+                PlaytestMetrics.IsRecording = false;
+                PlaytestMetrics.Reset();
                 UnityEngine.Object.DestroyImmediate(attackerGo);
                 UnityEngine.Object.DestroyImmediate(targetGo);
             }
