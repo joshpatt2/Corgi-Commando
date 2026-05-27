@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Core
 {
@@ -137,6 +138,7 @@ namespace CorgiCommando.Core
             }
 
             OnWaveStarted?.Invoke(CurrentWaveIndex);
+            LogPlaytestTransition("Idle", "WaveStart");
             EvaluateLowHpSpawnGroups();
 
             if (AliveEnemyCount == 0)
@@ -172,6 +174,11 @@ namespace CorgiCommando.Core
 
                 AliveEnemyCount++;
                 NotifyEnemySpawned(spawnedEnemy);
+
+                if (spawnedEnemy is WhiskerbotController)
+                {
+                    LogPlaytestTransition("WaveStart", "BossIntro");
+                }
             }
         }
 
@@ -362,6 +369,7 @@ namespace CorgiCommando.Core
         {
             IsWaveCleared = true;
             OnWaveCleared?.Invoke(CurrentWaveIndex);
+            LogPlaytestTransition("WaveStart", "WaveClear");
 
             if (CurrentWaveIndex >= TotalWaves - 1)
             {
@@ -378,6 +386,17 @@ namespace CorgiCommando.Core
 
             IsEncounterComplete = true;
             OnEncounterComplete?.Invoke();
+            LogPlaytestTransition("WaveClear", "Victory");
+        }
+
+        private void LogPlaytestTransition(string oldState, string newState)
+        {
+            if (!PlaytestMetrics.IsRecording)
+            {
+                return;
+            }
+
+            PlaytestMetrics.LogStateTransition($"{GetType().Name}:{GetInstanceID()}", oldState, newState);
         }
 
         private void ResetWaveState()

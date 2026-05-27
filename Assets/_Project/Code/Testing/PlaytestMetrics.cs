@@ -22,6 +22,7 @@ namespace CorgiCommando.Testing
         private const int InitialCapacity = 1024;
 
         public static bool IsRecording { get; set; }
+        public static event Action<StateTransitionEntry> StateTransitionLogged;
 
         private static readonly List<HitstopEntry> _hitstops = new List<HitstopEntry>(InitialCapacity);
         private static readonly List<KnockbackEntry> _knockbacks = new List<KnockbackEntry>(InitialCapacity);
@@ -126,12 +127,15 @@ namespace CorgiCommando.Testing
                 return;
             }
 
-            _stateTransitions.Add(new StateTransitionEntry
+            var entry = new StateTransitionEntry
             {
                 componentId = componentId ?? string.Empty,
                 oldState = oldState ?? string.Empty,
                 newState = newState ?? string.Empty
-            });
+            };
+
+            _stateTransitions.Add(entry);
+            StateTransitionLogged?.Invoke(entry);
         }
 
         public static void LogFrameTime(float deltaTime)

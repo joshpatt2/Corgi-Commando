@@ -87,5 +87,34 @@ namespace CorgiCommando.Tests.EditMode
             Assert.That(report.stateTransitions[0].componentId, Is.EqualTo("WhiskerbotController:9"));
             Assert.That(report.frameTimes[0].deltaTime, Is.EqualTo(1f / 60f).Within(0.0001f));
         }
+
+        [Test]
+        public void PlaytestMetrics_LogStateTransition_RaisesTransitionEvent_WhenRecording()
+        {
+            PlaytestMetrics.IsRecording = true;
+            PlaytestMetrics.StateTransitionEntry captured = default;
+            bool wasRaised = false;
+
+            void Handler(PlaytestMetrics.StateTransitionEntry entry)
+            {
+                captured = entry;
+                wasRaised = true;
+            }
+
+            PlaytestMetrics.StateTransitionLogged += Handler;
+            try
+            {
+                PlaytestMetrics.LogStateTransition("SpawnManager:1", "WaveStart", "WaveClear");
+            }
+            finally
+            {
+                PlaytestMetrics.StateTransitionLogged -= Handler;
+            }
+
+            Assert.That(wasRaised, Is.True);
+            Assert.That(captured.componentId, Is.EqualTo("SpawnManager:1"));
+            Assert.That(captured.oldState, Is.EqualTo("WaveStart"));
+            Assert.That(captured.newState, Is.EqualTo("WaveClear"));
+        }
     }
 }
