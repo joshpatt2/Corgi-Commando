@@ -1,7 +1,10 @@
+using System;
+using System.Collections;
 using System.IO;
 using NUnit.Framework;
 using CorgiCommando.Testing;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace CorgiCommando.Tests.EditMode
 {
@@ -42,6 +45,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.That(report.screenShakes, Has.Count.EqualTo(1));
             Assert.That(report.stateTransitions, Has.Count.EqualTo(1));
             Assert.That(report.frameTimes, Has.Count.EqualTo(1));
+            Assert.That(report.exceptions, Is.Empty);
         }
 
         [Test]
@@ -62,6 +66,7 @@ namespace CorgiCommando.Tests.EditMode
             Assert.That(report.screenShakes, Is.Empty);
             Assert.That(report.stateTransitions, Is.Empty);
             Assert.That(report.frameTimes, Is.Empty);
+            Assert.That(report.exceptions, Is.Empty);
         }
 
         [Test]
@@ -86,6 +91,77 @@ namespace CorgiCommando.Tests.EditMode
             Assert.That(report.screenShakes[0].source, Is.EqualTo("Special"));
             Assert.That(report.stateTransitions[0].componentId, Is.EqualTo("WhiskerbotController:9"));
             Assert.That(report.frameTimes[0].deltaTime, Is.EqualTo(1f / 60f).Within(0.0001f));
+            Assert.That(report.exceptions, Is.Empty);
+        }
+
+        [UnityTest]
+        public IEnumerator PlaytestMetrics_LogException_CapturesNullRef()
+        {
+            bool previousIgnoreFailingMessages = LogAssert.ignoreFailingMessages;
+            LogAssert.ignoreFailingMessages = true;
+
+            try
+            {
+                PlaytestMetrics.IsRecording = true;
+
+                object missingReference = null;
+                try
+                {
+                    _ = missingReference.ToString();
+                }
+                catch (NullReferenceException exception)
+                {
+                    Debug.LogException(exception);
+                }
+
+                yield return null;
+
+                string path = Path.Combine(Path.GetTempPath(), "playtest_metrics_exception_capture.json");
+                PlaytestMetrics.WriteReport(path);
+
+                var report = JsonUtility.FromJson<PlaytestMetrics.PlaytestReport>(File.ReadAllText(path));
+                Assert.That(report.exceptions, Has.Count.EqualTo(1));
+                Assert.That(report.exceptions[0].condition, Does.Contain("NullReferenceException"));
+                Assert.That(report.exceptions[0].stackTrace, Is.Not.Empty);
+                Assert.That(report.exceptions[0].type, Is.EqualTo(LogType.Exception.ToString()));
+                Assert.That(report.exceptions[0].frame, Is.GreaterThanOrEqualTo(0));
+            }
+            finally
+            {
+                LogAssert.ignoreFailingMessages = previousIgnoreFailingMessages;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator PlaytestMetrics_Subscription_IdempotentAcrossResets()
+        {
+            bool previousIgnoreFailingMessages = LogAssert.ignoreFailingMessages;
+            LogAssert.ignoreFailingMessages = true;
+
+            try
+            {
+                PlaytestMetrics.IsRecording = true;
+                PlaytestMetrics.IsRecording = true;
+
+                PlaytestMetrics.Reset();
+                PlaytestMetrics.Reset();
+
+                PlaytestMetrics.IsRecording = true;
+
+                Debug.LogException(new InvalidOperationException("idempotent-subscription-check"));
+                yield return null;
+
+                string path = Path.Combine(Path.GetTempPath(), "playtest_metrics_subscription_idempotent.json");
+                PlaytestMetrics.WriteReport(path);
+
+                var report = JsonUtility.FromJson<PlaytestMetrics.PlaytestReport>(File.ReadAllText(path));
+                Assert.That(report.exceptions, Has.Count.EqualTo(1));
+                Assert.That(report.exceptions[0].condition, Does.Contain("idempotent-subscription-check"));
+            }
+            finally
+            {
+                LogAssert.ignoreFailingMessages = previousIgnoreFailingMessages;
+            }
         }
     }
 }
