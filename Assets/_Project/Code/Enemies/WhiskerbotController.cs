@@ -48,7 +48,7 @@ namespace CorgiCommando.Enemies
             _data = data;
             TotalPhases = 3;
             CurrentPhase = 1;
-            AddEntityComponent(new HealthComponent(data.maxHP));
+            AddEntityComponent<IHealthComponent>(new HealthComponent(data.maxHP));
         }
 
         /// <summary>
