@@ -4,6 +4,12 @@ using UnityEngine;
 
 namespace CorgiCommando.Core
 {
+    public enum Checkpoint
+    {
+        None = 0,
+        BossIntro = 1
+    }
+
     /// <summary>
     /// ScriptableObject holding shared run state for co-op.
     /// Shared lives pool, shared Treats counter, revive tracking.
@@ -24,6 +30,9 @@ namespace CorgiCommando.Core
         /// <summary>Number of active players (1 or 2).</summary>
         public int ActivePlayerCount { get; private set; }
 
+        /// <summary>Current run checkpoint used for retry behavior.</summary>
+        public Checkpoint CurrentCheckpoint { get; private set; }
+
         /// <summary>Fired when Treats are added.</summary>
         public event Action<int> OnTreatsChanged;
 
@@ -32,6 +41,9 @@ namespace CorgiCommando.Core
 
         /// <summary>Fired when both players are dead — game over.</summary>
         public event Action OnGameOver;
+
+        /// <summary>Fired when a full party wipe occurs.</summary>
+        public event Action OnPartyWiped;
 
         /// <summary>Fired when a player drops in.</summary>
         public event Action<int> OnPlayerJoined;
@@ -44,7 +56,24 @@ namespace CorgiCommando.Core
             LivesRemaining = Mathf.Max(0, startingLives);
             TreatsCollected = 0;
             ActivePlayerCount = Mathf.Clamp(playerCount, 1, MaxPlayers);
+            CurrentCheckpoint = Checkpoint.None;
             _deadPlayers.Clear();
+        }
+
+        /// <summary>
+        /// Sets the current checkpoint.
+        /// </summary>
+        public void SetCheckpoint(Checkpoint checkpoint)
+        {
+            CurrentCheckpoint = checkpoint;
+        }
+
+        /// <summary>
+        /// Triggers the party-wipe event.
+        /// </summary>
+        public void TriggerPartyWipe()
+        {
+            OnPartyWiped?.Invoke();
         }
 
         /// <summary>

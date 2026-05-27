@@ -32,6 +32,13 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void RunState_BossDoorTriggered_SetsCheckpointToBossIntro()
+        {
+            _runState.SetCheckpoint(Checkpoint.BossIntro);
+            Assert.AreEqual(Checkpoint.BossIntro, _runState.CurrentCheckpoint);
+        }
+
+        [Test]
         public void InitializeRun_SetsStartingState()
         {
             // Assert

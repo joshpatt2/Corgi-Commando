@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using CorgiCommando.Camera;
 using CorgiCommando.Combat;
@@ -6,7 +7,13 @@ using CorgiCommando.Data;
 using CorgiCommando.Enemies;
 using CorgiCommando.Player;
 using CorgiCommando.Testing;
+using CorgiCommando.UI;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace CorgiCommando.Core
 {
@@ -32,6 +39,10 @@ namespace CorgiCommando.Core
         [SerializeField] private GroupTargetCamera _groupTargetCamera;
         [SerializeField] private ScreenShakeHandler _screenShakeHandler;
         [SerializeField] private bool _autoStartEncounter = true;
+        [SerializeField] private Transform _bossIntroSpawnPoint;
+        [SerializeField] private float _retryDelaySeconds = 2.5f;
+        [SerializeField] private bool _reloadSceneOnGameOver = true;
+        [SerializeField] private string _levelSceneName = "Level_Backyard";
 
         private readonly List<EnemyAI> _activeEnemies = new List<EnemyAI>();
         private readonly List<CorgiController> _activePlayers = new List<CorgiController>();
@@ -39,8 +50,17 @@ namespace CorgiCommando.Core
         private ReviveSystem _reviveSystem;
         private RunState _runState;
         private bool _encounterStarted;
+        private WhiskerbotController _bossController;
+        private BossBannerUI _bossBannerUI;
+        private Text _wipePromptText;
+        private bool _isBossFightActive;
+        private bool _partyWipeSequenceRunning;
+        private bool _awaitingGameOverStartPress;
+        private bool _hasWarnedNoSubmitInputBackend;
 
         public event Action<SceneTickStage> OnTickStageExecuted;
+        public event Action<string> OnPromptShown;
+        public event Action<string> OnSceneReloadRequested;
 
         public RunState RunState => _runState;
         public CombatSystem CombatSystem => _combatSystem;
@@ -53,6 +73,7 @@ namespace CorgiCommando.Core
         }
 
         public bool IsEncounterStarted => _encounterStarted;
+        public bool IsAwaitingGameOverStartPress => _awaitingGameOverStartPress;
 
         private void Start()
         {
@@ -62,6 +83,7 @@ namespace CorgiCommando.Core
             _reviveSystem ??= new ReviveSystem();
             _runState = ScriptableObject.CreateInstance<RunState>();
             _runState.InitializeRun(3, 1);
+            _runState.OnPartyWiped += HandlePartyWipe;
 
             if (_groupTargetCamera != null)
             {
@@ -96,6 +118,8 @@ namespace CorgiCommando.Core
             {
                 RegisterEnemy(existingEnemies[i]);
             }
+
+            RefreshBossReferences();
         }
 
         public void StartEncounter()
@@ -141,6 +165,9 @@ namespace CorgiCommando.Core
             {
                 OnTickStageExecuted?.Invoke(SceneTickStage.Revive);
             }
+
+            TryDetectPartyWipe();
+            TryHandleGameOverStartPress();
         }
 
         private void LateUpdate()
@@ -155,6 +182,16 @@ namespace CorgiCommando.Core
             {
                 _spawnManager.OnEnemySpawned -= RegisterEnemy;
                 _spawnManager.OnEnemyDeath -= UnregisterEnemy;
+            }
+
+            if (_runState != null)
+            {
+                _runState.OnPartyWiped -= HandlePartyWipe;
+            }
+
+            if (_bossController != null)
+            {
+                _bossController.OnDeath -= OnBossDied;
             }
 
             for (int i = 0; i < _activeEnemies.Count; i++)
@@ -287,6 +324,270 @@ namespace CorgiCommando.Core
 
             _reviveSystem.Tick(downedPlayer.PlayerIndex, alivePlayer.transform.position, downedPlayer.transform.position, deltaTime);
             return true;
+        }
+
+        /// <summary>
+        /// Called by level trigger wiring when players enter the boss intro door.
+        /// Activates boss-fight tracking and sets the boss-intro checkpoint.
+        /// </summary>
+        public void OnBossDoorTriggered()
+        {
+            _isBossFightActive = true;
+            _runState?.SetCheckpoint(Checkpoint.BossIntro);
+            RefreshBossReferences();
+        }
+
+        /// <summary>
+        /// Test hook for game-over confirmation in environments without Start input.
+        /// </summary>
+        public void ConfirmGameOverReload()
+        {
+            if (!_awaitingGameOverStartPress)
+            {
+                return;
+            }
+
+            ReloadLevelBackyard();
+        }
+
+        /// <summary>
+        /// Test seam only: enables/disables scene reload on game-over.
+        /// </summary>
+        public void SetReloadEnabledForTesting(bool enabled)
+        {
+            _reloadSceneOnGameOver = enabled;
+        }
+
+        private void TryDetectPartyWipe()
+        {
+            if (_runState == null || _partyWipeSequenceRunning || _awaitingGameOverStartPress)
+            {
+                return;
+            }
+
+            int deadCount = 0;
+            int consideredPlayers = 0;
+
+            for (int i = _activePlayers.Count - 1; i >= 0; i--)
+            {
+                var player = _activePlayers[i];
+                if (player == null)
+                {
+                    _activePlayers.RemoveAt(i);
+                    continue;
+                }
+
+                consideredPlayers++;
+                if (!player.IsAlive)
+                {
+                    deadCount++;
+                }
+            }
+
+            if (consideredPlayers > 0 && deadCount >= consideredPlayers)
+            {
+                _runState.TriggerPartyWipe();
+            }
+        }
+
+        private void HandlePartyWipe()
+        {
+            if (_partyWipeSequenceRunning)
+            {
+                return;
+            }
+
+            _partyWipeSequenceRunning = true;
+
+            if (_runState != null && _runState.CurrentCheckpoint == Checkpoint.BossIntro && _isBossFightActive)
+            {
+                ShowPrompt("REGROUP\nRETRY");
+                StartCoroutine(BossRetryRoutine());
+                return;
+            }
+
+            ShowPrompt("GAME OVER\nPRESS START");
+            _awaitingGameOverStartPress = true;
+            _partyWipeSequenceRunning = false;
+        }
+
+        private IEnumerator BossRetryRoutine()
+        {
+            float retryDelay = Mathf.Max(0f, _retryDelaySeconds);
+            if (retryDelay > 0f)
+            {
+                yield return new WaitForSeconds(retryDelay);
+            }
+
+            Vector3 spawnPosition = GetBossRetrySpawnPosition();
+
+            for (int i = 0; i < _activePlayers.Count; i++)
+            {
+                var player = _activePlayers[i];
+                if (player == null)
+                {
+                    continue;
+                }
+
+                player.transform.position = spawnPosition;
+                player.Revive();
+                player.TransitionTo(CorgiState.Idle);
+            }
+
+            RefreshBossReferences();
+            if (_bossController != null)
+            {
+                _bossController.ResetToPhase1();
+                var bossHealth = _bossController.GetEntityComponent<IHealthComponent>();
+                if (bossHealth != null)
+                {
+                    _bossBannerUI?.Show(_bossController.GetBossName(), bossHealth.CurrentHP, bossHealth.MaxHP);
+                }
+            }
+
+            HidePrompt();
+            _partyWipeSequenceRunning = false;
+        }
+
+        private void TryHandleGameOverStartPress()
+        {
+            if (!_awaitingGameOverStartPress)
+            {
+                return;
+            }
+
+            if (IsSubmitPressedThisFrame())
+            {
+                ReloadLevelBackyard();
+            }
+        }
+
+        private void ReloadLevelBackyard()
+        {
+            _awaitingGameOverStartPress = false;
+            _partyWipeSequenceRunning = false;
+            OnSceneReloadRequested?.Invoke(_levelSceneName);
+
+            if (_reloadSceneOnGameOver)
+            {
+                SceneManager.LoadScene(_levelSceneName);
+            }
+        }
+
+        private void ShowPrompt(string message)
+        {
+            EnsurePromptText();
+            if (_wipePromptText == null)
+            {
+                return;
+            }
+
+            _wipePromptText.text = message;
+            _wipePromptText.gameObject.SetActive(true);
+            OnPromptShown?.Invoke(message);
+        }
+
+        private void HidePrompt()
+        {
+            if (_wipePromptText != null)
+            {
+                _wipePromptText.text = string.Empty;
+                _wipePromptText.gameObject.SetActive(false);
+            }
+        }
+
+        private void EnsurePromptText()
+        {
+            if (_wipePromptText != null)
+            {
+                return;
+            }
+
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                var canvasGo = new GameObject("RetryPromptCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                canvas = canvasGo.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            }
+
+            var promptGo = new GameObject("RetryPromptText", typeof(RectTransform), typeof(Text));
+            promptGo.transform.SetParent(canvas.transform, false);
+            var text = promptGo.GetComponent<Text>();
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.fontSize = 42;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.text = string.Empty;
+            promptGo.GetComponent<RectTransform>().anchorMin = new Vector2(0.5f, 0.5f);
+            promptGo.GetComponent<RectTransform>().anchorMax = new Vector2(0.5f, 0.5f);
+            promptGo.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
+            promptGo.GetComponent<RectTransform>().sizeDelta = new Vector2(520f, 140f);
+            promptGo.SetActive(false);
+            _wipePromptText = text;
+        }
+
+        private void RefreshBossReferences()
+        {
+            if (_bossController == null)
+            {
+                _bossController = FindObjectOfType<WhiskerbotController>();
+                if (_bossController != null)
+                {
+                    _bossController.OnDeath += OnBossDied;
+                }
+            }
+
+            if (_bossBannerUI == null)
+            {
+                _bossBannerUI = FindObjectOfType<BossBannerUI>();
+            }
+        }
+
+        private Vector3 GetBossRetrySpawnPosition()
+        {
+            if (_bossIntroSpawnPoint != null)
+            {
+                return _bossIntroSpawnPoint.position;
+            }
+
+            if (_activePlayers.Count > 0 && _activePlayers[0] != null)
+            {
+                return _activePlayers[0].transform.position;
+            }
+
+            return Vector3.zero;
+        }
+
+        private void OnBossDied(Entity deadBoss)
+        {
+            _isBossFightActive = false;
+        }
+
+        private bool IsSubmitPressedThisFrame()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+            {
+                return true;
+            }
+
+            if (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame)
+            {
+                return true;
+            }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+            return Input.GetKeyDown(KeyCode.Return) || Input.GetButtonDown("Submit");
+#else
+            if (!_hasWarnedNoSubmitInputBackend)
+            {
+                Debug.LogWarning("No input backend enabled for GAME OVER submit detection. Enable either Input System or Legacy Input Manager.");
+                _hasWarnedNoSubmitInputBackend = true;
+            }
+            return false;
+#endif
         }
     }
 }

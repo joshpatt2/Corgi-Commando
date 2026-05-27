@@ -48,7 +48,7 @@ namespace CorgiCommando.Enemies
             _data = data;
             TotalPhases = 3;
             CurrentPhase = 1;
-            AddEntityComponent(new HealthComponent(data.maxHP));
+            AddEntityComponent<IHealthComponent>(new HealthComponent(data.maxHP));
         }
 
         /// <summary>
@@ -125,6 +125,34 @@ namespace CorgiCommando.Enemies
         public void Tick(float deltaTime)
         {
             // Intentionally empty: WHISKERBOT's behavior is driven by phase events and external UnityEvent scripts.
+        }
+
+        /// <summary>
+        /// Resets boss state to a fresh phase-1 intro state for retry.
+        /// Used by boss checkpoint recovery after a full party wipe.
+        /// </summary>
+        public void ResetToPhase1()
+        {
+            CurrentPhase = 1;
+            IsLaserActive = false;
+            IsPilotEjected = false;
+
+            if (PilotEntity != null)
+            {
+                Destroy(PilotEntity.gameObject);
+                PilotEntity = null;
+            }
+
+            Revive();
+        }
+
+        /// <summary>
+        /// Returns the boss display name from EnemyData,
+        /// or this GameObject name if EnemyData is unavailable.
+        /// </summary>
+        public string GetBossName()
+        {
+            return _data != null ? _data.enemyName : gameObject.name;
         }
     }
 }
