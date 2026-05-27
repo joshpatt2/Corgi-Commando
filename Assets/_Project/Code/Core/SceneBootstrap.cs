@@ -356,12 +356,6 @@ namespace CorgiCommando.Core
                 inputHandler = playerTwoObject.AddComponent<PlayerInputHandler>();
             }
 
-            if (inputHandler == null)
-            {
-                Destroy(playerTwoObject);
-                return false;
-            }
-
             _runState.OnPlayerDropIn(1);
             if (_runState.ActivePlayerCount < 2)
             {
