@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Core
 {
@@ -100,7 +101,7 @@ namespace CorgiCommando.Core
             {
                 foreach (var spawnGroup in wave.spawnGroups)
                 {
-                    if (spawnGroup == null || spawnGroup.enemyData == null)
+                    if (spawnGroup == null || (spawnGroup.enemyPrefab == null && spawnGroup.enemyData == null))
                     {
                         continue;
                     }
@@ -151,7 +152,25 @@ namespace CorgiCommando.Core
             for (int i = 0; i < spawnCount; i++)
             {
                 Vector3 spawnPosition = spawnGroup.spawnPosition + new Vector3(i * SpawnOffsetX, 0f, 0f);
-                EnemyAI spawnedEnemy = CreateEnemy(spawnGroup.enemyData, spawnPosition);
+                EnemyAI spawnedEnemy = null;
+                if (spawnGroup.enemyPrefab != null)
+                {
+                    spawnedEnemy = InstantiateEnemyPrefab(spawnGroup.enemyPrefab, spawnPosition);
+                    PlaytestMetrics.LogAssetResolution(
+                        PlaytestMetrics.ResolveAssetPath(spawnGroup.enemyPrefab, spawnGroup.enemyPrefab.name),
+                        spawnedEnemy != null,
+                        nameof(GameObject));
+                }
+                else
+                {
+                    PlaytestMetrics.LogAssetResolution("SpawnGroup.enemyPrefab", false, nameof(GameObject));
+                }
+
+                if (spawnedEnemy == null && spawnGroup.enemyData != null)
+                {
+                    spawnedEnemy = CreateEnemy(spawnGroup.enemyData, spawnPosition);
+                }
+
                 if (spawnedEnemy == null)
                 {
                     continue;
@@ -253,6 +272,24 @@ namespace CorgiCommando.Core
                 Bounds = new Rect(-0.5f, -0.5f, 1f, 1f)
             });
             enemy.Initialize(enemyData);
+            return enemy;
+        }
+
+        private static EnemyAI InstantiateEnemyPrefab(GameObject enemyPrefab, Vector3 spawnPosition)
+        {
+            var spawnedGameObject = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+            if (spawnedGameObject == null)
+            {
+                return null;
+            }
+
+            var enemy = spawnedGameObject.GetComponent<EnemyAI>();
+            if (enemy == null)
+            {
+                Destroy(spawnedGameObject);
+                return null;
+            }
+
             return enemy;
         }
 

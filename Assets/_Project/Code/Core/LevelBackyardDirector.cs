@@ -3,6 +3,7 @@ using CorgiCommando.Combat;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
 using CorgiCommando.Player;
+using CorgiCommando.Testing;
 using CorgiCommando.UI;
 using UnityEngine;
 
@@ -150,12 +151,22 @@ namespace CorgiCommando.Core
             {
                 var prefab = _environmentalWeaponPrefabs[i];
                 var spawnPoint = _waveThreeWeaponSpawnPoints[i];
-                if (prefab == null || spawnPoint == null)
+                if (prefab == null)
+                {
+                    PlaytestMetrics.LogAssetResolution($"LevelBackyardDirector.environmentalWeaponPrefabs[{i}]", false, nameof(GameObject));
+                    continue;
+                }
+
+                if (spawnPoint == null)
                 {
                     continue;
                 }
 
-                Instantiate(prefab, spawnPoint.position, Quaternion.identity);
+                var spawnedWeapon = Instantiate(prefab, spawnPoint.position, Quaternion.identity);
+                PlaytestMetrics.LogAssetResolution(
+                    PlaytestMetrics.ResolveAssetPath(prefab, prefab.name),
+                    spawnedWeapon != null,
+                    nameof(GameObject));
             }
 
             _weaponsSpawned = true;

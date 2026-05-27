@@ -1,4 +1,5 @@
 using System;
+using CorgiCommando.Testing;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -419,6 +420,7 @@ namespace CorgiCommando.UI
             if (_defaultFont == null)
             {
                 _defaultFont = Resources.GetBuiltinResource<Font>(DefaultFontName);
+                PlaytestMetrics.LogAssetResolution(DefaultFontName, _defaultFont != null, nameof(Font));
             }
 
             return _defaultFont;

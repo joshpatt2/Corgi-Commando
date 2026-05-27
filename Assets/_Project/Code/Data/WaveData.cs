@@ -42,6 +42,9 @@ namespace CorgiCommando.Data
     [Serializable]
     public class SpawnGroup
     {
+        [Tooltip("Optional enemy prefab to instantiate for this spawn group")]
+        public GameObject enemyPrefab;
+
         [Tooltip("Enemy type to spawn")]
         public EnemyData enemyData;
 

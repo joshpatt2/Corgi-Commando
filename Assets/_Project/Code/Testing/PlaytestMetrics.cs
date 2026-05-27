@@ -28,6 +28,7 @@ namespace CorgiCommando.Testing
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
         private static readonly List<FrameTimeEntry> _frameTimes = new List<FrameTimeEntry>(InitialCapacity);
+        private static readonly List<AssetResolutionEntry> _assetResolutions = new List<AssetResolutionEntry>(InitialCapacity);
 
         [Serializable]
         public sealed class PlaytestReport
@@ -37,6 +38,7 @@ namespace CorgiCommando.Testing
             public List<ScreenShakeEntry> screenShakes;
             public List<StateTransitionEntry> stateTransitions;
             public List<FrameTimeEntry> frameTimes;
+            public List<AssetResolutionEntry> assetResolutions;
         }
 
         [Serializable]
@@ -73,6 +75,15 @@ namespace CorgiCommando.Testing
         public struct FrameTimeEntry
         {
             public float deltaTime;
+        }
+
+        [Serializable]
+        public struct AssetResolutionEntry
+        {
+            public string assetPath;
+            public bool succeeded;
+            public string assetType;
+            public int frame;
         }
 
         public static void LogHitstop(float startTime, float endTime)
@@ -144,6 +155,22 @@ namespace CorgiCommando.Testing
             _frameTimes.Add(new FrameTimeEntry { deltaTime = deltaTime });
         }
 
+        public static void LogAssetResolution(string assetPath, bool succeeded, string assetType)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            _assetResolutions.Add(new AssetResolutionEntry
+            {
+                assetPath = string.IsNullOrWhiteSpace(assetPath) ? "<unknown>" : assetPath,
+                succeeded = succeeded,
+                assetType = string.IsNullOrWhiteSpace(assetType) ? "<unknown>" : assetType,
+                frame = Time.frameCount
+            });
+        }
+
         public static void Reset()
         {
             _hitstops.Clear();
@@ -151,6 +178,7 @@ namespace CorgiCommando.Testing
             _screenShakes.Clear();
             _stateTransitions.Clear();
             _frameTimes.Clear();
+            _assetResolutions.Clear();
         }
 
         public static void WriteReport(string path)
@@ -172,11 +200,32 @@ namespace CorgiCommando.Testing
                 knockbacks = new List<KnockbackEntry>(_knockbacks),
                 screenShakes = new List<ScreenShakeEntry>(_screenShakes),
                 stateTransitions = new List<StateTransitionEntry>(_stateTransitions),
-                frameTimes = new List<FrameTimeEntry>(_frameTimes)
+                frameTimes = new List<FrameTimeEntry>(_frameTimes),
+                assetResolutions = new List<AssetResolutionEntry>(_assetResolutions)
             };
 
             string json = JsonUtility.ToJson(report, true);
             File.WriteAllText(path, json);
+        }
+
+        public static string ResolveAssetPath(UnityEngine.Object asset, string fallbackPath = null)
+        {
+            if (asset != null)
+            {
+#if UNITY_EDITOR
+                string editorPath = UnityEditor.AssetDatabase.GetAssetPath(asset);
+                if (!string.IsNullOrWhiteSpace(editorPath))
+                {
+                    return editorPath;
+                }
+#endif
+                if (!string.IsNullOrWhiteSpace(asset.name))
+                {
+                    return asset.name;
+                }
+            }
+
+            return string.IsNullOrWhiteSpace(fallbackPath) ? "<unknown>" : fallbackPath;
         }
     }
 }
