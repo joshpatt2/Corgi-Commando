@@ -202,7 +202,6 @@ namespace CorgiCommando.Testing
             _stateTransitions.Clear();
             _frameTimes.Clear();
             _exceptions.Clear();
-            UnsubscribeFromLogs();
         }
 
         public static void WriteReport(string path)

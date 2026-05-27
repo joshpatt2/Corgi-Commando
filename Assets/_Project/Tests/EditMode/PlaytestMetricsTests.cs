@@ -102,6 +102,7 @@ namespace CorgiCommando.Tests.EditMode
 
             try
             {
+                PlaytestMetrics.Reset();
                 PlaytestMetrics.IsRecording = true;
 
                 object missingReference = null;
@@ -140,6 +141,7 @@ namespace CorgiCommando.Tests.EditMode
 
             try
             {
+                PlaytestMetrics.Reset();
                 PlaytestMetrics.IsRecording = true;
                 PlaytestMetrics.IsRecording = true;
 
