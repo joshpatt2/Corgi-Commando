@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CorgiCommando.Testing;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -23,6 +24,11 @@ namespace CorgiCommando.Core
             Vector2 resolvedAxisValue = IsMoveAction(action)
                 ? ResolveMoveAxis(action, axisValue)
                 : axisValue;
+
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogInputRecorded(action, resolvedAxisValue, timestamp);
+            }
 
             _bufferedInputs.Add(new BufferedInput(action, timestamp, resolvedAxisValue));
 

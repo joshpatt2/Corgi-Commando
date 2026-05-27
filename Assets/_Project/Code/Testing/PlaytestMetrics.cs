@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CorgiCommando.Core;
 using UnityEngine;
 
 namespace CorgiCommando.Testing
@@ -28,6 +29,8 @@ namespace CorgiCommando.Testing
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
         private static readonly List<FrameTimeEntry> _frameTimes = new List<FrameTimeEntry>(InitialCapacity);
+        private static readonly List<InputRecordedEntry> _inputRecorded = new List<InputRecordedEntry>(InitialCapacity);
+        private static readonly List<InputConsumedEntry> _inputConsumed = new List<InputConsumedEntry>(InitialCapacity);
 
         [Serializable]
         public sealed class PlaytestReport
@@ -37,6 +40,8 @@ namespace CorgiCommando.Testing
             public List<ScreenShakeEntry> screenShakes;
             public List<StateTransitionEntry> stateTransitions;
             public List<FrameTimeEntry> frameTimes;
+            public List<InputRecordedEntry> inputRecorded;
+            public List<InputConsumedEntry> inputConsumed;
         }
 
         [Serializable]
@@ -73,6 +78,22 @@ namespace CorgiCommando.Testing
         public struct FrameTimeEntry
         {
             public float deltaTime;
+        }
+
+        [Serializable]
+        public struct InputRecordedEntry
+        {
+            public InputAction action;
+            public Vector2 axisValue;
+            public float timestamp;
+        }
+
+        [Serializable]
+        public struct InputConsumedEntry
+        {
+            public InputAction action;
+            public string consumerComponentId;
+            public float timestamp;
         }
 
         public static void LogHitstop(float startTime, float endTime)
@@ -144,6 +165,36 @@ namespace CorgiCommando.Testing
             _frameTimes.Add(new FrameTimeEntry { deltaTime = deltaTime });
         }
 
+        public static void LogInputRecorded(InputAction action, Vector2 axisValue, float timestamp)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            _inputRecorded.Add(new InputRecordedEntry
+            {
+                action = action,
+                axisValue = axisValue,
+                timestamp = timestamp
+            });
+        }
+
+        public static void LogInputConsumed(InputAction action, string consumerComponentId, float timestamp)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            _inputConsumed.Add(new InputConsumedEntry
+            {
+                action = action,
+                consumerComponentId = consumerComponentId ?? string.Empty,
+                timestamp = timestamp
+            });
+        }
+
         public static void Reset()
         {
             _hitstops.Clear();
@@ -151,6 +202,8 @@ namespace CorgiCommando.Testing
             _screenShakes.Clear();
             _stateTransitions.Clear();
             _frameTimes.Clear();
+            _inputRecorded.Clear();
+            _inputConsumed.Clear();
         }
 
         public static void WriteReport(string path)
@@ -172,7 +225,9 @@ namespace CorgiCommando.Testing
                 knockbacks = new List<KnockbackEntry>(_knockbacks),
                 screenShakes = new List<ScreenShakeEntry>(_screenShakes),
                 stateTransitions = new List<StateTransitionEntry>(_stateTransitions),
-                frameTimes = new List<FrameTimeEntry>(_frameTimes)
+                frameTimes = new List<FrameTimeEntry>(_frameTimes),
+                inputRecorded = new List<InputRecordedEntry>(_inputRecorded),
+                inputConsumed = new List<InputConsumedEntry>(_inputConsumed)
             };
 
             string json = JsonUtility.ToJson(report, true);

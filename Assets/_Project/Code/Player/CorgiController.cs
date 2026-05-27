@@ -16,6 +16,8 @@ namespace CorgiCommando.Player
     public class CorgiController : Entity
     {
         private const float FramesPerSecond = 60f;
+        private const string MovementConsumerComponentId = nameof(KinematicMovementController);
+        private const string CombatConsumerComponentId = nameof(CombatSystem);
         [SerializeField] private CorgiData _characterData;
         [SerializeField] private int _playerIndex;
 
@@ -202,6 +204,14 @@ namespace CorgiCommando.Player
             }
 
             Vector2 axis = _inputBuffer.GetMoveAxis();
+            if (PlaytestMetrics.IsRecording)
+            {
+                InputAction moveAction = GetMoveAction(axis);
+                if (moveAction != InputAction.None)
+                {
+                    PlaytestMetrics.LogInputConsumed(moveAction, MovementConsumerComponentId, Time.time);
+                }
+            }
             _movementController?.SetMoveInput(axis);
 
             if (Mathf.Abs(axis.x) > 0.1f)
@@ -210,7 +220,7 @@ namespace CorgiCommando.Player
             }
 
             // Priority rule: when both are buffered this frame, Special is consumed before combo attacks.
-            if (_inputBuffer.ConsumeInput(InputAction.Special).HasValue)
+            if (TryConsumeAction(InputAction.Special, CombatConsumerComponentId))
             {
                 UseSpecial();
             }
@@ -219,19 +229,19 @@ namespace CorgiCommando.Player
                 switch (CurrentState)
                 {
                     case CorgiState.Attack1:
-                        if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                        if (TryConsumeAction(InputAction.Punch, CombatConsumerComponentId))
                         {
                             TransitionTo(CorgiState.Attack2);
                         }
                         break;
                     case CorgiState.Attack2:
-                        if (_inputBuffer.ConsumeInput(InputAction.Kick).HasValue || _inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                        if (TryConsumeAction(InputAction.Kick, CombatConsumerComponentId) || TryConsumeAction(InputAction.Punch, CombatConsumerComponentId))
                         {
                             TransitionTo(CorgiState.Attack3);
                         }
                         break;
                     default:
-                        if (_inputBuffer.ConsumeInput(InputAction.Punch).HasValue)
+                        if (TryConsumeAction(InputAction.Punch, CombatConsumerComponentId))
                         {
                             TransitionTo(CorgiState.Attack1);
                         }
@@ -408,6 +418,37 @@ namespace CorgiCommando.Player
                    CharacterData != null &&
                    CharacterData.specialDecayRate > 0f &&
                    SpecialMeter > 0f;
+        }
+
+        private bool TryConsumeAction(InputAction action, string consumerComponentId)
+        {
+            BufferedInput? consumed = _inputBuffer.ConsumeInput(action);
+            if (!consumed.HasValue)
+            {
+                return false;
+            }
+
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogInputConsumed(action, consumerComponentId, Time.time);
+            }
+
+            return true;
+        }
+
+        private static InputAction GetMoveAction(Vector2 axis)
+        {
+            if (axis.sqrMagnitude <= 0f)
+            {
+                return InputAction.None;
+            }
+
+            if (Mathf.Abs(axis.x) >= Mathf.Abs(axis.y))
+            {
+                return axis.x < 0f ? InputAction.MoveLeft : InputAction.MoveRight;
+            }
+
+            return axis.y < 0f ? InputAction.MoveDown : InputAction.MoveUp;
         }
 
         private void ScheduleAttackResolve(AttackData attackData)
