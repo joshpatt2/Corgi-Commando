@@ -39,6 +39,7 @@ namespace CorgiCommando.Core
         private ReviveSystem _reviveSystem;
         private RunState _runState;
         private bool _encounterStarted;
+        private bool _isInitialized;
 
         public event Action<SceneTickStage> OnTickStageExecuted;
 
@@ -56,45 +57,68 @@ namespace CorgiCommando.Core
 
         private void Start()
         {
-            AcquireReferences();
+            Initialize();
+        }
 
-            _combatSystem ??= new CombatSystem();
-            _reviveSystem ??= new ReviveSystem();
-            _runState = ScriptableObject.CreateInstance<RunState>();
-            _runState.InitializeRun(3, 1);
-
-            if (_groupTargetCamera != null)
+        public void Initialize()
+        {
+            string componentId = $"{gameObject.name} ({GetType().Name})";
+            if (_isInitialized)
             {
-                _groupTargetCamera.UseManualTick = true;
-                if (_playerOne != null)
+                PlaytestMetrics.LogInitialize(componentId, false, "Initialize called more than once.");
+                return;
+            }
+
+            try
+            {
+                AcquireReferences();
+
+                _combatSystem ??= new CombatSystem();
+                _reviveSystem ??= new ReviveSystem();
+                _runState = ScriptableObject.CreateInstance<RunState>();
+                _runState.InitializeRun(3, 1);
+
+                if (_groupTargetCamera != null)
                 {
-                    _groupTargetCamera.AddTarget(_playerOne.transform);
+                    _groupTargetCamera.UseManualTick = true;
+                    if (_playerOne != null)
+                    {
+                        _groupTargetCamera.AddTarget(_playerOne.transform);
+                    }
                 }
-            }
 
-            CacheActivePlayers();
+                CacheActivePlayers();
 
-            for (int i = 0; i < _activePlayers.Count; i++)
-            {
-                _activePlayers[i]?.SetCombatSystem(_combatSystem);
-            }
-
-            _screenShakeHandler?.SetCombatSystem(_combatSystem);
-
-            if (_spawnManager != null)
-            {
-                _spawnManager.OnEnemySpawned += RegisterEnemy;
-                _spawnManager.OnEnemyDeath += UnregisterEnemy;
-                if (_autoStartEncounter)
+                for (int i = 0; i < _activePlayers.Count; i++)
                 {
-                    StartEncounter();
+                    _activePlayers[i]?.SetCombatSystem(_combatSystem);
                 }
-            }
 
-            EnemyAI[] existingEnemies = FindObjectsOfType<EnemyAI>();
-            for (int i = 0; i < existingEnemies.Length; i++)
+                _screenShakeHandler?.SetCombatSystem(_combatSystem);
+
+                if (_spawnManager != null)
+                {
+                    _spawnManager.OnEnemySpawned += RegisterEnemy;
+                    _spawnManager.OnEnemyDeath += UnregisterEnemy;
+                    if (_autoStartEncounter)
+                    {
+                        StartEncounter();
+                    }
+                }
+
+                EnemyAI[] existingEnemies = FindObjectsOfType<EnemyAI>();
+                for (int i = 0; i < existingEnemies.Length; i++)
+                {
+                    RegisterEnemy(existingEnemies[i]);
+                }
+
+                _isInitialized = true;
+                PlaytestMetrics.LogInitialize(componentId, true, string.Empty);
+            }
+            catch (Exception ex)
             {
-                RegisterEnemy(existingEnemies[i]);
+                PlaytestMetrics.LogInitialize(componentId, false, ex.Message);
+                throw;
             }
         }
 
@@ -172,6 +196,8 @@ namespace CorgiCommando.Core
                 Destroy(_runState);
                 _runState = null;
             }
+
+            _isInitialized = false;
         }
 
         private void AcquireReferences()

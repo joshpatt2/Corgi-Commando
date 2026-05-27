@@ -87,5 +87,26 @@ namespace CorgiCommando.Tests.EditMode
             Assert.That(report.stateTransitions[0].componentId, Is.EqualTo("WhiskerbotController:9"));
             Assert.That(report.frameTimes[0].deltaTime, Is.EqualTo(1f / 60f).Within(0.0001f));
         }
+
+        [Test]
+        public void PlaytestMetrics_LogInitialize_SuccessAndFailureBothCaptured()
+        {
+            PlaytestMetrics.IsRecording = true;
+
+            PlaytestMetrics.LogInitialize("Player (CorgiController)", true, string.Empty);
+            PlaytestMetrics.LogInitialize("Enemy (EnemyAI)", false, "Value cannot be null. (Parameter 'data')");
+
+            string path = Path.Combine(Path.GetTempPath(), "playtest_metrics_initialize.json");
+            PlaytestMetrics.WriteReport(path);
+
+            var report = JsonUtility.FromJson<PlaytestMetrics.PlaytestReport>(File.ReadAllText(path));
+            Assert.That(report.initializations, Has.Count.EqualTo(2));
+            Assert.That(report.initializations[0].componentId, Is.EqualTo("Player (CorgiController)"));
+            Assert.That(report.initializations[0].succeeded, Is.True);
+            Assert.That(report.initializations[0].failureReason, Is.EqualTo(string.Empty));
+            Assert.That(report.initializations[1].componentId, Is.EqualTo("Enemy (EnemyAI)"));
+            Assert.That(report.initializations[1].succeeded, Is.False);
+            Assert.That(report.initializations[1].failureReason, Is.EqualTo("Value cannot be null. (Parameter 'data')"));
+        }
     }
 }

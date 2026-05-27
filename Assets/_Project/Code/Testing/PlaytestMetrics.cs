@@ -13,6 +13,7 @@ namespace CorgiCommando.Testing
     ///   "knockbacks":[{"impulseMagnitude":3.2,"targetId":"Enemy_12"}],
     ///   "screenShakes":[{"amplitude":0.15,"source":"Heavy"}],
     ///   "stateTransitions":[{"componentId":"FeralCatAI:2384","oldState":"Idle","newState":"Chase"}],
+    ///   "initializations":[{"componentId":"Player (CorgiController)","succeeded":true,"failureReason":"","frame":12}],
     ///   "frameTimes":[{"deltaTime":0.0166667}]
     /// }
     /// </summary>
@@ -27,6 +28,7 @@ namespace CorgiCommando.Testing
         private static readonly List<KnockbackEntry> _knockbacks = new List<KnockbackEntry>(InitialCapacity);
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
+        private static readonly List<InitializationEntry> _initializations = new List<InitializationEntry>(InitialCapacity);
         private static readonly List<FrameTimeEntry> _frameTimes = new List<FrameTimeEntry>(InitialCapacity);
 
         [Serializable]
@@ -36,6 +38,7 @@ namespace CorgiCommando.Testing
             public List<KnockbackEntry> knockbacks;
             public List<ScreenShakeEntry> screenShakes;
             public List<StateTransitionEntry> stateTransitions;
+            public List<InitializationEntry> initializations;
             public List<FrameTimeEntry> frameTimes;
         }
 
@@ -73,6 +76,15 @@ namespace CorgiCommando.Testing
         public struct FrameTimeEntry
         {
             public float deltaTime;
+        }
+
+        [Serializable]
+        public struct InitializationEntry
+        {
+            public string componentId;
+            public bool succeeded;
+            public string failureReason;
+            public int frame;
         }
 
         public static void LogHitstop(float startTime, float endTime)
@@ -144,12 +156,29 @@ namespace CorgiCommando.Testing
             _frameTimes.Add(new FrameTimeEntry { deltaTime = deltaTime });
         }
 
+        public static void LogInitialize(string componentId, bool succeeded, string failureReason)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            _initializations.Add(new InitializationEntry
+            {
+                componentId = componentId ?? string.Empty,
+                succeeded = succeeded,
+                failureReason = failureReason ?? string.Empty,
+                frame = Time.frameCount
+            });
+        }
+
         public static void Reset()
         {
             _hitstops.Clear();
             _knockbacks.Clear();
             _screenShakes.Clear();
             _stateTransitions.Clear();
+            _initializations.Clear();
             _frameTimes.Clear();
         }
 
@@ -172,6 +201,7 @@ namespace CorgiCommando.Testing
                 knockbacks = new List<KnockbackEntry>(_knockbacks),
                 screenShakes = new List<ScreenShakeEntry>(_screenShakes),
                 stateTransitions = new List<StateTransitionEntry>(_stateTransitions),
+                initializations = new List<InitializationEntry>(_initializations),
                 frameTimes = new List<FrameTimeEntry>(_frameTimes)
             };
 

@@ -45,10 +45,20 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Initialize(EnemyData data)
         {
-            _data = data;
-            TotalPhases = 3;
-            CurrentPhase = 1;
-            AddEntityComponent(new HealthComponent(data.maxHP));
+            string componentId = $"{gameObject.name} ({GetType().Name})";
+            try
+            {
+                _data = data ?? throw new ArgumentNullException(nameof(data));
+                TotalPhases = 3;
+                CurrentPhase = 1;
+                AddEntityComponent(new HealthComponent(data.maxHP));
+                PlaytestMetrics.LogInitialize(componentId, true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                PlaytestMetrics.LogInitialize(componentId, false, ex.Message);
+                throw;
+            }
         }
 
         /// <summary>

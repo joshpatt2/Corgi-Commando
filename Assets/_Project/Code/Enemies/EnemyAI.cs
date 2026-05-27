@@ -34,27 +34,38 @@ namespace CorgiCommando.Enemies
         /// </summary>
         public void Initialize(EnemyData data)
         {
-            if (data == null)
+            string componentId = $"{gameObject.name} ({GetType().Name})";
+            try
             {
-                throw new ArgumentNullException(nameof(data));
+                if (data == null)
+                {
+                    throw new ArgumentNullException(nameof(data));
+                }
+
+                Data = data;
+                Faction = CorgiCommando.Core.Faction.Enemy;
+                CurrentTarget = null;
+                HasAggroSlot = false;
+                CurrentState = EnemyState.Idle;
+
+                // Register health so enemies can take damage from CombatSystem.ResolveAttack
+                if (!HasEntityComponent<IHealthComponent>())
+                {
+                    AddEntityComponent<IHealthComponent>(new HealthComponent(data.maxHP));
+                }
+
+                // Register hurtbox so CombatSystem.ResolveAttack can resolve hits on this enemy
+                if (!HasEntityComponent<HurtboxComponent>())
+                {
+                    AddEntityComponent<HurtboxComponent>(new HurtboxComponent());
+                }
+
+                PlaytestMetrics.LogInitialize(componentId, true, string.Empty);
             }
-
-            Data = data;
-            Faction = CorgiCommando.Core.Faction.Enemy;
-            CurrentTarget = null;
-            HasAggroSlot = false;
-            CurrentState = EnemyState.Idle;
-
-            // Register health so enemies can take damage from CombatSystem.ResolveAttack
-            if (!HasEntityComponent<IHealthComponent>())
+            catch (Exception ex)
             {
-                AddEntityComponent<IHealthComponent>(new HealthComponent(data.maxHP));
-            }
-
-            // Register hurtbox so CombatSystem.ResolveAttack can resolve hits on this enemy
-            if (!HasEntityComponent<HurtboxComponent>())
-            {
-                AddEntityComponent<HurtboxComponent>(new HurtboxComponent());
+                PlaytestMetrics.LogInitialize(componentId, false, ex.Message);
+                throw;
             }
         }
 

@@ -5,6 +5,7 @@ using UnityEngine;
 using CorgiCommando.Core;
 using CorgiCommando.Combat;
 using CorgiCommando.Data;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Player
 {
@@ -66,30 +67,40 @@ namespace CorgiCommando.Player
         /// </summary>
         public void Initialize(CorgiData data, IInputBuffer inputBuffer, int playerIndex)
         {
-            CharacterData = data ?? throw new ArgumentNullException(nameof(data));
-            _inputBuffer = inputBuffer ?? throw new ArgumentNullException(nameof(inputBuffer));
-            if (playerIndex < 0 || playerIndex > 1)
+            string componentId = $"{gameObject.name} ({GetType().Name})";
+            try
             {
-                throw new ArgumentOutOfRangeException(nameof(playerIndex), "Player index must be 0 (P1) or 1 (P2).");
-            }
+                CharacterData = data ?? throw new ArgumentNullException(nameof(data));
+                _inputBuffer = inputBuffer ?? throw new ArgumentNullException(nameof(inputBuffer));
+                if (playerIndex < 0 || playerIndex > 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(playerIndex), "Player index must be 0 (P1) or 1 (P2).");
+                }
 
-            PlayerIndex = playerIndex;
-            _movementController = GetComponent<KinematicMovementController>();
-            if (_movementController != null)
+                PlayerIndex = playerIndex;
+                _movementController = GetComponent<KinematicMovementController>();
+                if (_movementController != null)
+                {
+                    _movementController.WalkSpeed = CharacterData.walkSpeed;
+                    _movementController.DepthSpeed = CharacterData.depthSpeed;
+                    _movementController.JumpForce = CharacterData.jumpForce;
+                }
+
+                CurrentState = CorgiState.Idle;
+                ComboStep = 0;
+                IsHoldingWeapon = false;
+                SpecialMeter = 0f;
+                _comboWindowRemainingFrames = 0f;
+                _hasResolvedThisAttack = false;
+                _attackResolveCoroutine = null;
+                RefreshSpecialReady();
+                PlaytestMetrics.LogInitialize(componentId, true, string.Empty);
+            }
+            catch (Exception ex)
             {
-                _movementController.WalkSpeed = CharacterData.walkSpeed;
-                _movementController.DepthSpeed = CharacterData.depthSpeed;
-                _movementController.JumpForce = CharacterData.jumpForce;
+                PlaytestMetrics.LogInitialize(componentId, false, ex.Message);
+                throw;
             }
-
-            CurrentState = CorgiState.Idle;
-            ComboStep = 0;
-            IsHoldingWeapon = false;
-            SpecialMeter = 0f;
-            _comboWindowRemainingFrames = 0f;
-            _hasResolvedThisAttack = false;
-            _attackResolveCoroutine = null;
-            RefreshSpecialReady();
         }
 
         /// <summary>

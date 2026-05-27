@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Core
 {
@@ -66,20 +67,36 @@ namespace CorgiCommando.Core
         /// </summary>
         public void StartEncounter(WaveData waveData)
         {
-            if (waveData == null)
+            Initialize(waveData);
+        }
+
+        public void Initialize(WaveData waveData)
+        {
+            string componentId = $"{gameObject.name} ({GetType().Name})";
+            try
             {
-                throw new ArgumentNullException(nameof(waveData));
+                if (waveData == null)
+                {
+                    throw new ArgumentNullException(nameof(waveData));
+                }
+
+                _waveData = waveData;
+                CurrentWaveIndex = 0;
+                TotalWaves = _waveData.waves?.Length ?? 0;
+                IsEncounterComplete = false;
+                ResetWaveState();
+
+                if (TotalWaves == 0)
+                {
+                    CompleteEncounter();
+                }
+
+                PlaytestMetrics.LogInitialize(componentId, true, string.Empty);
             }
-
-            _waveData = waveData;
-            CurrentWaveIndex = 0;
-            TotalWaves = _waveData.waves?.Length ?? 0;
-            IsEncounterComplete = false;
-            ResetWaveState();
-
-            if (TotalWaves == 0)
+            catch (Exception ex)
             {
-                CompleteEncounter();
+                PlaytestMetrics.LogInitialize(componentId, false, ex.Message);
+                throw;
             }
         }
 
