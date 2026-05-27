@@ -1,6 +1,7 @@
 using System;
 using CorgiCommando.Core;
 using CorgiCommando.Data;
+using CorgiCommando.Testing;
 using UnityEngine;
 
 namespace CorgiCommando.Enemies
@@ -81,6 +82,12 @@ namespace CorgiCommando.Enemies
             }
 
             OnStateChanged?.Invoke(oldState, newState);
+
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogStateTransition($"{GetType().Name}:{GetInstanceID()}", oldState.ToString(), newState.ToString());
+            }
+
             OnStateTransitioned(oldState, newState);
             return true;
         }

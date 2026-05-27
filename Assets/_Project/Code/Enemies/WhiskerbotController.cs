@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using CorgiCommando.Core;
 using CorgiCommando.Data;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Enemies
 {
@@ -65,11 +66,21 @@ namespace CorgiCommando.Enemies
 
             if (CurrentPhase == 1 && ratio <= Phase2Threshold)
             {
+                int oldPhase = CurrentPhase;
                 TransitionToPhase(2);
+                if (PlaytestMetrics.IsRecording)
+                {
+                    PlaytestMetrics.LogStateTransition($"{GetType().Name}:{GetInstanceID()}", oldPhase.ToString(), CurrentPhase.ToString());
+                }
             }
             else if (CurrentPhase == 2 && ratio <= Phase3Threshold)
             {
+                int oldPhase = CurrentPhase;
                 TransitionToPhase(3);
+                if (PlaytestMetrics.IsRecording)
+                {
+                    PlaytestMetrics.LogStateTransition($"{GetType().Name}:{GetInstanceID()}", oldPhase.ToString(), CurrentPhase.ToString());
+                }
             }
         }
 
