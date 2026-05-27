@@ -10,6 +10,8 @@ namespace CorgiCommando.Testing
     public sealed class PlaytestRecorder : IDisposable
     {
         private const string TimestampFormat = "yyyyMMdd-HHmmssfff";
+        private const string BossIntroOldState = "0";
+        private const string BossIntroNewState = "1";
         private readonly Func<DateTime> _utcNowProvider;
         private readonly Action<string> _captureScreenshot;
         private readonly List<RecordedEvent> _recordedEvents = new List<RecordedEvent>();
@@ -140,7 +142,7 @@ namespace CorgiCommando.Testing
                 markdown.Append(" → ");
                 markdown.Append(runEvent.NewState);
                 markdown.Append(" | ");
-                markdown.Append(runEvent.ScreenshotPath);
+                markdown.Append(Path.GetFileName(runEvent.ScreenshotPath));
                 markdown.AppendLine(" |");
             }
 
@@ -189,7 +191,9 @@ namespace CorgiCommando.Testing
                 return true;
             }
 
-            if (component.Contains("whiskerbot") && oldState == "0" && newState == "1")
+            if (component.Contains("whiskerbot") &&
+                oldState == BossIntroOldState &&
+                newState == BossIntroNewState)
             {
                 eventName = "boss-intro";
                 return true;
@@ -204,6 +208,8 @@ namespace CorgiCommando.Testing
             if (component.Contains("whiskerbot") &&
                 int.TryParse(oldState, NumberStyles.Integer, CultureInfo.InvariantCulture, out int oldPhase) &&
                 int.TryParse(newState, NumberStyles.Integer, CultureInfo.InvariantCulture, out int newPhase) &&
+                oldPhase > 0 &&
+                newPhase > 0 &&
                 oldPhase != newPhase)
             {
                 eventName = "boss-phase-transition";
