@@ -70,6 +70,9 @@ namespace CorgiCommando.Core
             Initialize(waveData);
         }
 
+        /// <summary>
+        /// Initializes encounter state from wave data.
+        /// </summary>
         public void Initialize(WaveData waveData)
         {
             string componentId = $"{gameObject.name} ({GetType().Name})";

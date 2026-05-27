@@ -65,8 +65,9 @@ namespace CorgiCommando.Core
             string componentId = $"{gameObject.name} ({GetType().Name})";
             if (_isInitialized)
             {
-                PlaytestMetrics.LogInitialize(componentId, false, "Initialize called more than once.");
-                return;
+                const string reason = "Initialize called more than once.";
+                PlaytestMetrics.LogInitialize(componentId, false, reason);
+                throw new InvalidOperationException(reason);
             }
 
             try
