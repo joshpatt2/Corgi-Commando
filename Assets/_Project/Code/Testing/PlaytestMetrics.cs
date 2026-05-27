@@ -173,6 +173,7 @@ namespace CorgiCommando.Testing
 
         public static void Reset()
         {
+            IsRecording = false;
             _hitstops.Clear();
             _knockbacks.Clear();
             _screenShakes.Clear();

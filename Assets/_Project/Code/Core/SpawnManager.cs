@@ -163,7 +163,7 @@ namespace CorgiCommando.Core
                 }
                 else
                 {
-                    PlaytestMetrics.LogAssetResolution("SpawnGroup.enemyPrefab", false, nameof(GameObject));
+                    PlaytestMetrics.LogAssetResolution($"SpawnGroup.{nameof(SpawnGroup.enemyPrefab)}", false, nameof(GameObject));
                 }
 
                 if (spawnedEnemy == null && spawnGroup.enemyData != null)
