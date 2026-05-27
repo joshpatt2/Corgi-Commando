@@ -88,10 +88,11 @@ namespace CorgiCommando.Core
             {
                 if (PlaytestMetrics.IsRecording)
                 {
+                    var namedPositions = PlaytestMetrics.CaptureNamedPositions();
                     PlaytestMetrics.LogPositionSnapshot(
                         "wipe",
-                        PlaytestMetrics.ResolvePrimaryActorPosition(),
-                        PlaytestMetrics.CaptureNamedPositions());
+                        PlaytestMetrics.ResolvePrimaryActorPosition(namedPositions),
+                        namedPositions);
                 }
 
                 OnGameOver?.Invoke();

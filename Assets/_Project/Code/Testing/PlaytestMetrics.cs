@@ -33,7 +33,8 @@ namespace CorgiCommando.Testing
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
         private static readonly List<FrameTimeEntry> _frameTimes = new List<FrameTimeEntry>(InitialCapacity);
-        private static readonly List<PositionSnapshotEntry> _positionSnapshots = new List<PositionSnapshotEntry>(256);
+        private static readonly List<PositionSnapshotEntry> _positionSnapshots = new List<PositionSnapshotEntry>(InitialCapacity);
+        private static readonly Dictionary<Type, string> _enemyTypeNameCache = new Dictionary<Type, string>();
 
         [Serializable]
         public sealed class PlaytestReport
@@ -268,7 +269,13 @@ namespace CorgiCommando.Testing
                     continue;
                 }
 
-                string enemyType = enemy.GetType().Name.ToLowerInvariant();
+                Type enemyClrType = enemy.GetType();
+                if (!_enemyTypeNameCache.TryGetValue(enemyClrType, out string enemyType))
+                {
+                    enemyType = enemyClrType.Name.ToLowerInvariant();
+                    _enemyTypeNameCache[enemyClrType] = enemyType;
+                }
+
                 enemyTypeCounts.TryGetValue(enemyType, out int typeCount);
                 int nextCount = typeCount + 1;
                 enemyTypeCounts[enemyType] = nextCount;
@@ -286,10 +293,23 @@ namespace CorgiCommando.Testing
 
         public static Vector3 ResolvePrimaryActorPosition()
         {
-            CorgiController player = UnityEngine.Object.FindObjectOfType<CorgiController>();
-            if (player != null)
+            CorgiController[] players = UnityEngine.Object.FindObjectsOfType<CorgiController>();
+            for (int i = 0; i < players.Length; i++)
             {
-                return player.transform.position;
+                CorgiController player = players[i];
+                if (player != null && player.PlayerIndex == 0)
+                {
+                    return player.transform.position;
+                }
+            }
+
+            for (int i = 0; i < players.Length; i++)
+            {
+                CorgiController player = players[i];
+                if (player != null)
+                {
+                    return player.transform.position;
+                }
             }
 
             WhiskerbotController boss = UnityEngine.Object.FindObjectOfType<WhiskerbotController>();
@@ -299,6 +319,32 @@ namespace CorgiCommando.Testing
             }
 
             return Vector3.zero;
+        }
+
+        public static Vector3 ResolvePrimaryActorPosition(Dictionary<string, Vector3> namedPositions)
+        {
+            if (namedPositions != null)
+            {
+                if (namedPositions.TryGetValue("player-1", out Vector3 playerOnePosition))
+                {
+                    return playerOnePosition;
+                }
+
+                foreach (var pair in namedPositions)
+                {
+                    if (pair.Key.StartsWith("player-", StringComparison.Ordinal))
+                    {
+                        return pair.Value;
+                    }
+                }
+
+                if (namedPositions.TryGetValue("boss", out Vector3 bossPosition))
+                {
+                    return bossPosition;
+                }
+            }
+
+            return ResolvePrimaryActorPosition();
         }
 
         public static void Reset()
@@ -358,8 +404,8 @@ namespace CorgiCommando.Testing
                 builder.Append("      \"actorPosition\": ").Append(FormatVector3(snapshot.actorPosition)).AppendLine(",");
                 builder.AppendLine("      \"namedPositions\": {");
 
-                List<NamedPositionEntry> namedEntries = snapshot.namedPositions ?? new List<NamedPositionEntry>(0);
-                for (int j = 0; j < namedEntries.Count; j++)
+                List<NamedPositionEntry> namedEntries = snapshot.namedPositions;
+                for (int j = 0; namedEntries != null && j < namedEntries.Count; j++)
                 {
                     NamedPositionEntry entry = namedEntries[j];
                     builder

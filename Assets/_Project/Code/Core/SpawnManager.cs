@@ -140,10 +140,11 @@ namespace CorgiCommando.Core
             OnWaveStarted?.Invoke(CurrentWaveIndex);
             if (PlaytestMetrics.IsRecording)
             {
+                var namedPositions = PlaytestMetrics.CaptureNamedPositions();
                 PlaytestMetrics.LogPositionSnapshot(
                     $"wave-{CurrentWaveIndex + 1}-start",
-                    PlaytestMetrics.ResolvePrimaryActorPosition(),
-                    PlaytestMetrics.CaptureNamedPositions());
+                    PlaytestMetrics.ResolvePrimaryActorPosition(namedPositions),
+                    namedPositions);
             }
             EvaluateLowHpSpawnGroups();
 
@@ -372,10 +373,11 @@ namespace CorgiCommando.Core
             OnWaveCleared?.Invoke(CurrentWaveIndex);
             if (PlaytestMetrics.IsRecording)
             {
+                var namedPositions = PlaytestMetrics.CaptureNamedPositions();
                 PlaytestMetrics.LogPositionSnapshot(
                     $"wave-{CurrentWaveIndex + 1}-clear",
-                    PlaytestMetrics.ResolvePrimaryActorPosition(),
-                    PlaytestMetrics.CaptureNamedPositions());
+                    PlaytestMetrics.ResolvePrimaryActorPosition(namedPositions),
+                    namedPositions);
             }
 
             if (CurrentWaveIndex >= TotalWaves - 1)
@@ -395,10 +397,11 @@ namespace CorgiCommando.Core
             OnEncounterComplete?.Invoke();
             if (PlaytestMetrics.IsRecording)
             {
+                var namedPositions = PlaytestMetrics.CaptureNamedPositions();
                 PlaytestMetrics.LogPositionSnapshot(
                     "victory",
-                    PlaytestMetrics.ResolvePrimaryActorPosition(),
-                    PlaytestMetrics.CaptureNamedPositions());
+                    PlaytestMetrics.ResolvePrimaryActorPosition(namedPositions),
+                    namedPositions);
             }
         }
 
