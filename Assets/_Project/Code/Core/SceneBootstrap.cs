@@ -558,6 +558,7 @@ namespace CorgiCommando.Core
 
             return Vector3.zero;
         }
+
         private void OnBossDied(Entity deadBoss)
         {
             _isBossFightActive = false;
