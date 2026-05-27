@@ -10,6 +10,7 @@ namespace CorgiCommando.Testing
     /// JSON report shape:
     /// {
     ///   "hitstops":[{"startTime":0.5,"endTime":0.5666667,"durationFrames":4.0}],
+    ///   "damageEvents":[{"source":"Sarge (CorgiController)","target":"CatBandit_01 (Entity)","amount":10,"damageType":"Heavy","killedTarget":false,"frame":120}],
     ///   "knockbacks":[{"impulseMagnitude":3.2,"targetId":"Enemy_12"}],
     ///   "screenShakes":[{"amplitude":0.15,"source":"Heavy"}],
     ///   "stateTransitions":[{"componentId":"FeralCatAI:2384","oldState":"Idle","newState":"Chase"}],
@@ -46,6 +47,7 @@ namespace CorgiCommando.Testing
         }
 
         private static readonly List<HitstopEntry> _hitstops = new List<HitstopEntry>(InitialCapacity);
+        private static readonly List<DamageEventEntry> _damageEvents = new List<DamageEventEntry>(InitialCapacity);
         private static readonly List<KnockbackEntry> _knockbacks = new List<KnockbackEntry>(InitialCapacity);
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
@@ -56,6 +58,7 @@ namespace CorgiCommando.Testing
         public sealed class PlaytestReport
         {
             public List<HitstopEntry> hitstops;
+            public List<DamageEventEntry> damageEvents;
             public List<KnockbackEntry> knockbacks;
             public List<ScreenShakeEntry> screenShakes;
             public List<StateTransitionEntry> stateTransitions;
@@ -76,6 +79,17 @@ namespace CorgiCommando.Testing
         {
             public float impulseMagnitude;
             public string targetId;
+        }
+
+        [Serializable]
+        public struct DamageEventEntry
+        {
+            public string source;
+            public string target;
+            public int amount;
+            public string damageType;
+            public bool killedTarget;
+            public int frame;
         }
 
         [Serializable]
@@ -138,6 +152,24 @@ namespace CorgiCommando.Testing
             });
         }
 
+        public static void LogDamage(string sourceId, string targetId, int amount, string damageType, bool killedTarget)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            _damageEvents.Add(new DamageEventEntry
+            {
+                source = sourceId ?? string.Empty,
+                target = targetId ?? string.Empty,
+                amount = amount,
+                damageType = damageType ?? string.Empty,
+                killedTarget = killedTarget,
+                frame = Time.frameCount
+            });
+        }
+
         public static void LogScreenShake(float amplitude, string source)
         {
             if (!IsRecording)
@@ -197,6 +229,7 @@ namespace CorgiCommando.Testing
         {
             IsRecording = false;
             _hitstops.Clear();
+            _damageEvents.Clear();
             _knockbacks.Clear();
             _screenShakes.Clear();
             _stateTransitions.Clear();
@@ -220,6 +253,7 @@ namespace CorgiCommando.Testing
             var report = new PlaytestReport
             {
                 hitstops = new List<HitstopEntry>(_hitstops),
+                damageEvents = new List<DamageEventEntry>(_damageEvents),
                 knockbacks = new List<KnockbackEntry>(_knockbacks),
                 screenShakes = new List<ScreenShakeEntry>(_screenShakes),
                 stateTransitions = new List<StateTransitionEntry>(_stateTransitions),

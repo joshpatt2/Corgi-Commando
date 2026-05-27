@@ -89,7 +89,19 @@ namespace CorgiCommando.Combat
                 // Apply damage
                 var health = target.GetEntityComponent<IHealthComponent>();
                 if (health != null)
+                {
+                    bool wasAliveBeforeDamage = health.CurrentHP > 0;
                     health.TakeDamage(attackData.damage);
+                    if (PlaytestMetrics.IsRecording)
+                    {
+                        PlaytestMetrics.LogDamage(
+                            FormatEntityId(attacker),
+                            FormatEntityId(target),
+                            attackData.damage,
+                            attackData.hitType.ToString(),
+                            wasAliveBeforeDamage && health.CurrentHP <= 0);
+                    }
+                }
 
                 // Apply knockback
                 var knockbackReceiver = target.GetEntityComponent<KnockbackReceiver>();
@@ -226,6 +238,16 @@ namespace CorgiCommando.Combat
             _specialMeters.Remove(entity);
             _trackedEntities.Remove(entity);
             entity.OnDeath -= OnEntityDeath;
+        }
+
+        private static string FormatEntityId(Entity entity)
+        {
+            if (entity == null)
+            {
+                return string.Empty;
+            }
+
+            return $"{entity.name} ({entity.GetType().Name})";
         }
     }
 }
