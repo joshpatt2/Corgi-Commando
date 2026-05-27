@@ -36,6 +36,7 @@ namespace CorgiCommando.UI
 
         private readonly Image[] _healthFillImages = new Image[MaxPlayers];
         private readonly Image[] _specialFillImages = new Image[MaxPlayers];
+        private readonly GameObject[] _playerPanels = new GameObject[MaxPlayers];
 
         private GameObject _pauseMenuPanel;
         private static Font _defaultFont;
@@ -51,6 +52,8 @@ namespace CorgiCommando.UI
             _cachedRectTransform = GetComponent<RectTransform>();
             InitializePlayerDefaults();
             EnsureVisualHierarchy();
+            SetPlayerStripVisible(0, true);
+            SetPlayerStripVisible(1, false);
         }
 
         /// <summary>
@@ -215,6 +218,22 @@ namespace CorgiCommando.UI
             return _visualsBuilt;
         }
 
+        public void SetPlayerStripVisible(int playerIndex, bool isVisible)
+        {
+            EnsureVisualHierarchy();
+            int slot = ResolvePlayerSlot(playerIndex);
+            if (_playerPanels[slot] != null)
+            {
+                _playerPanels[slot].SetActive(isVisible);
+            }
+        }
+
+        public bool IsPlayerStripVisible(int playerIndex)
+        {
+            int slot = ResolvePlayerSlot(playerIndex);
+            return _playerPanels[slot] != null && _playerPanels[slot].activeSelf;
+        }
+
         private void OnDestroy()
         {
             if (IsPaused)
@@ -287,6 +306,7 @@ namespace CorgiCommando.UI
             string panelName = slot == 0 ? "P1HUD" : "P2HUD";
             var panelGO = new GameObject(panelName, typeof(RectTransform), typeof(Image));
             panelGO.transform.SetParent(_safeAreaRectTransform, false);
+            _playerPanels[slot] = panelGO;
 
             var panelRect = panelGO.GetComponent<RectTransform>();
             panelRect.anchorMin = isLeftSide ? new Vector2(0f, 1f) : new Vector2(1f, 1f);

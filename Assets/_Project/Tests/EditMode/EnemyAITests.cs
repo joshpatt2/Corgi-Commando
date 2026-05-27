@@ -257,6 +257,46 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void AggroSlotManager_FourEnemiesTwoPlayers_RespectsPerPlayerCap()
+        {
+            var manager = new AggroSlotManager { MaxSlotsPerTarget = 2 };
+
+            var targetOneGo = new GameObject("P1");
+            var targetOne = targetOneGo.AddComponent<Entity>();
+            var targetTwoGo = new GameObject("P2");
+            var targetTwo = targetTwoGo.AddComponent<Entity>();
+
+            var e1Go = new GameObject("E1");
+            var e1 = e1Go.AddComponent<FeralCatAI>();
+            var e2Go = new GameObject("E2");
+            var e2 = e2Go.AddComponent<FeralCatAI>();
+            var e3Go = new GameObject("E3");
+            var e3 = e3Go.AddComponent<FeralCatAI>();
+            var e4Go = new GameObject("E4");
+            var e4 = e4Go.AddComponent<FeralCatAI>();
+            var e5Go = new GameObject("E5");
+            var e5 = e5Go.AddComponent<FeralCatAI>();
+
+            Assert.IsTrue(manager.TryReserveSlot(e1, targetOne));
+            Assert.IsTrue(manager.TryReserveSlot(e2, targetOne));
+            Assert.IsTrue(manager.TryReserveSlot(e3, targetTwo));
+            Assert.IsTrue(manager.TryReserveSlot(e4, targetTwo));
+            Assert.IsFalse(manager.TryReserveSlot(e5, targetOne));
+
+            Assert.AreEqual(2, manager.GetOccupiedSlots(targetOne));
+            Assert.AreEqual(2, manager.GetOccupiedSlots(targetTwo));
+
+            manager.Dispose();
+            UnityEngine.Object.DestroyImmediate(targetOneGo);
+            UnityEngine.Object.DestroyImmediate(targetTwoGo);
+            UnityEngine.Object.DestroyImmediate(e1Go);
+            UnityEngine.Object.DestroyImmediate(e2Go);
+            UnityEngine.Object.DestroyImmediate(e3Go);
+            UnityEngine.Object.DestroyImmediate(e4Go);
+            UnityEngine.Object.DestroyImmediate(e5Go);
+        }
+
+        [Test]
         public void EnemyAI_TransitionTo_Stunned_ReleasesAggroSlot()
         {
             // Arrange

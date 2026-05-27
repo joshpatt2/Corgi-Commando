@@ -146,6 +146,18 @@ namespace CorgiCommando.Tests.EditMode
         }
 
         [Test]
+        public void OnPlayerDropOut_DecreasesPlayerCount_WhenP2Leaves()
+        {
+            var coopRun = ScriptableObject.CreateInstance<RunState>();
+            coopRun.InitializeRun(3, 2);
+
+            coopRun.OnPlayerDropOut(1);
+
+            Assert.AreEqual(1, coopRun.ActivePlayerCount);
+            UnityEngine.Object.DestroyImmediate(coopRun);
+        }
+
+        [Test]
         public void ReviveSystem_ProximityCountsDown()
         {
             // Arrange
