@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
+using CorgiCommando.Testing;
 
 namespace CorgiCommando.Core
 {
@@ -137,6 +138,13 @@ namespace CorgiCommando.Core
             }
 
             OnWaveStarted?.Invoke(CurrentWaveIndex);
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogPositionSnapshot(
+                    $"wave-{CurrentWaveIndex + 1}-start",
+                    PlaytestMetrics.ResolvePrimaryActorPosition(),
+                    PlaytestMetrics.CaptureNamedPositions());
+            }
             EvaluateLowHpSpawnGroups();
 
             if (AliveEnemyCount == 0)
@@ -362,6 +370,13 @@ namespace CorgiCommando.Core
         {
             IsWaveCleared = true;
             OnWaveCleared?.Invoke(CurrentWaveIndex);
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogPositionSnapshot(
+                    $"wave-{CurrentWaveIndex + 1}-clear",
+                    PlaytestMetrics.ResolvePrimaryActorPosition(),
+                    PlaytestMetrics.CaptureNamedPositions());
+            }
 
             if (CurrentWaveIndex >= TotalWaves - 1)
             {
@@ -378,6 +393,13 @@ namespace CorgiCommando.Core
 
             IsEncounterComplete = true;
             OnEncounterComplete?.Invoke();
+            if (PlaytestMetrics.IsRecording)
+            {
+                PlaytestMetrics.LogPositionSnapshot(
+                    "victory",
+                    PlaytestMetrics.ResolvePrimaryActorPosition(),
+                    PlaytestMetrics.CaptureNamedPositions());
+            }
         }
 
         private void ResetWaveState()

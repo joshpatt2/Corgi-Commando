@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CorgiCommando.Testing;
 using UnityEngine;
 
 namespace CorgiCommando.Core
@@ -85,6 +86,14 @@ namespace CorgiCommando.Core
 
             if (_deadPlayers.Count >= ActivePlayerCount && LivesRemaining <= 0)
             {
+                if (PlaytestMetrics.IsRecording)
+                {
+                    PlaytestMetrics.LogPositionSnapshot(
+                        "wipe",
+                        PlaytestMetrics.ResolvePrimaryActorPosition(),
+                        PlaytestMetrics.CaptureNamedPositions());
+                }
+
                 OnGameOver?.Invoke();
             }
         }

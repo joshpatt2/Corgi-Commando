@@ -3,6 +3,7 @@ using CorgiCommando.Combat;
 using CorgiCommando.Data;
 using CorgiCommando.Enemies;
 using CorgiCommando.Player;
+using CorgiCommando.Testing;
 using CorgiCommando.UI;
 using UnityEngine;
 
@@ -212,6 +213,13 @@ namespace CorgiCommando.Core
             }
 
             IsBossSpawned = true;
+            if (PlaytestMetrics.IsRecording && boss != null)
+            {
+                PlaytestMetrics.LogPositionSnapshot(
+                    "boss-intro",
+                    boss.transform.position,
+                    PlaytestMetrics.CaptureNamedPositions());
+            }
         }
 
         private void AcquireReferences()

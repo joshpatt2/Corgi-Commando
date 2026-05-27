@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
+using CorgiCommando.Enemies;
+using CorgiCommando.Player;
 using UnityEngine;
 
 namespace CorgiCommando.Testing
@@ -13,7 +17,8 @@ namespace CorgiCommando.Testing
     ///   "knockbacks":[{"impulseMagnitude":3.2,"targetId":"Enemy_12"}],
     ///   "screenShakes":[{"amplitude":0.15,"source":"Heavy"}],
     ///   "stateTransitions":[{"componentId":"FeralCatAI:2384","oldState":"Idle","newState":"Chase"}],
-    ///   "frameTimes":[{"deltaTime":0.0166667}]
+    ///   "frameTimes":[{"deltaTime":0.0166667}],
+    ///   "positionSnapshots":[{"label":"boss-phase-1-to-2","actorPosition":{"x":0,"y":0,"z":0},"namedPositions":{"player-1":{"x":0,"y":0,"z":0},"boss":{"x":0,"y":0,"z":0}},"frame":120}]
     /// }
     /// </summary>
     public static class PlaytestMetrics
@@ -28,6 +33,7 @@ namespace CorgiCommando.Testing
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
         private static readonly List<FrameTimeEntry> _frameTimes = new List<FrameTimeEntry>(InitialCapacity);
+        private static readonly List<PositionSnapshotEntry> _positionSnapshots = new List<PositionSnapshotEntry>(256);
 
         [Serializable]
         public sealed class PlaytestReport
@@ -73,6 +79,22 @@ namespace CorgiCommando.Testing
         public struct FrameTimeEntry
         {
             public float deltaTime;
+        }
+
+        [Serializable]
+        public struct NamedPositionEntry
+        {
+            public string key;
+            public Vector3 position;
+        }
+
+        [Serializable]
+        public struct PositionSnapshotEntry
+        {
+            public string label;
+            public Vector3 actorPosition;
+            public List<NamedPositionEntry> namedPositions;
+            public int frame;
         }
 
         public static void LogHitstop(float startTime, float endTime)
@@ -144,6 +166,141 @@ namespace CorgiCommando.Testing
             _frameTimes.Add(new FrameTimeEntry { deltaTime = deltaTime });
         }
 
+        public static void LogPositionSnapshot(string label, Vector3 actorPosition, Dictionary<string, Vector3> namedPositions)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            var entries = new List<NamedPositionEntry>(namedPositions?.Count ?? 0);
+            if (namedPositions != null)
+            {
+                foreach (var pair in namedPositions.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+                {
+                    entries.Add(new NamedPositionEntry
+                    {
+                        key = pair.Key ?? string.Empty,
+                        position = pair.Value
+                    });
+                }
+            }
+
+            _positionSnapshots.Add(new PositionSnapshotEntry
+            {
+                label = label ?? string.Empty,
+                actorPosition = actorPosition,
+                namedPositions = entries,
+                frame = Time.frameCount
+            });
+        }
+
+        public static Dictionary<string, Vector3> CaptureNamedPositions()
+        {
+            var namedPositions = new Dictionary<string, Vector3>(StringComparer.Ordinal);
+
+            CorgiController[] players = UnityEngine.Object.FindObjectsOfType<CorgiController>();
+            Array.Sort(players, (left, right) =>
+            {
+                if (left == null && right == null)
+                {
+                    return 0;
+                }
+
+                if (left == null)
+                {
+                    return 1;
+                }
+
+                if (right == null)
+                {
+                    return -1;
+                }
+
+                return left.PlayerIndex.CompareTo(right.PlayerIndex);
+            });
+
+            for (int i = 0; i < players.Length; i++)
+            {
+                CorgiController player = players[i];
+                if (player == null)
+                {
+                    continue;
+                }
+
+                string key = $"player-{player.PlayerIndex + 1}";
+                namedPositions[key] = player.transform.position;
+            }
+
+            EnemyAI[] enemies = UnityEngine.Object.FindObjectsOfType<EnemyAI>();
+            Array.Sort(enemies, (left, right) =>
+            {
+                if (left == null && right == null)
+                {
+                    return 0;
+                }
+
+                if (left == null)
+                {
+                    return 1;
+                }
+
+                if (right == null)
+                {
+                    return -1;
+                }
+
+                int byName = string.CompareOrdinal(left.GetType().Name, right.GetType().Name);
+                if (byName != 0)
+                {
+                    return byName;
+                }
+
+                return string.CompareOrdinal(left.name, right.name);
+            });
+
+            var enemyTypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int i = 0; i < enemies.Length; i++)
+            {
+                EnemyAI enemy = enemies[i];
+                if (enemy == null || !enemy.IsAlive)
+                {
+                    continue;
+                }
+
+                string enemyType = enemy.GetType().Name.ToLowerInvariant();
+                enemyTypeCounts.TryGetValue(enemyType, out int typeCount);
+                int nextCount = typeCount + 1;
+                enemyTypeCounts[enemyType] = nextCount;
+                namedPositions[$"enemy-{nextCount}-{enemyType}"] = enemy.transform.position;
+            }
+
+            WhiskerbotController boss = UnityEngine.Object.FindObjectOfType<WhiskerbotController>();
+            if (boss != null)
+            {
+                namedPositions["boss"] = boss.transform.position;
+            }
+
+            return namedPositions;
+        }
+
+        public static Vector3 ResolvePrimaryActorPosition()
+        {
+            CorgiController player = UnityEngine.Object.FindObjectOfType<CorgiController>();
+            if (player != null)
+            {
+                return player.transform.position;
+            }
+
+            WhiskerbotController boss = UnityEngine.Object.FindObjectOfType<WhiskerbotController>();
+            if (boss != null)
+            {
+                return boss.transform.position;
+            }
+
+            return Vector3.zero;
+        }
+
         public static void Reset()
         {
             _hitstops.Clear();
@@ -151,6 +308,7 @@ namespace CorgiCommando.Testing
             _screenShakes.Clear();
             _stateTransitions.Clear();
             _frameTimes.Clear();
+            _positionSnapshots.Clear();
         }
 
         public static void WriteReport(string path)
@@ -175,8 +333,78 @@ namespace CorgiCommando.Testing
                 frameTimes = new List<FrameTimeEntry>(_frameTimes)
             };
 
-            string json = JsonUtility.ToJson(report, true);
+            string json = BuildReportJson(report);
             File.WriteAllText(path, json);
+        }
+
+        private static string BuildReportJson(PlaytestReport report)
+        {
+            string baseJson = JsonUtility.ToJson(report, true);
+            int insertIndex = baseJson.LastIndexOf('}');
+            if (insertIndex < 0)
+            {
+                return baseJson;
+            }
+
+            var builder = new StringBuilder(baseJson.Length + 512);
+            builder.Append(baseJson, 0, insertIndex);
+            builder.AppendLine(",");
+            builder.AppendLine("  \"positionSnapshots\": [");
+            for (int i = 0; i < _positionSnapshots.Count; i++)
+            {
+                PositionSnapshotEntry snapshot = _positionSnapshots[i];
+                builder.AppendLine("    {");
+                builder.Append("      \"label\": \"").Append(EscapeJson(snapshot.label)).AppendLine("\",");
+                builder.Append("      \"actorPosition\": ").Append(FormatVector3(snapshot.actorPosition)).AppendLine(",");
+                builder.AppendLine("      \"namedPositions\": {");
+
+                List<NamedPositionEntry> namedEntries = snapshot.namedPositions ?? new List<NamedPositionEntry>(0);
+                for (int j = 0; j < namedEntries.Count; j++)
+                {
+                    NamedPositionEntry entry = namedEntries[j];
+                    builder
+                        .Append("        \"")
+                        .Append(EscapeJson(entry.key))
+                        .Append("\": ")
+                        .Append(FormatVector3(entry.position));
+                    builder.AppendLine(j < namedEntries.Count - 1 ? "," : string.Empty);
+                }
+
+                builder.AppendLine("      },");
+                builder.Append("      \"frame\": ").Append(snapshot.frame).AppendLine();
+                builder.Append("    }");
+                builder.AppendLine(i < _positionSnapshots.Count - 1 ? "," : string.Empty);
+            }
+            builder.AppendLine("  ]");
+            builder.Append('}');
+            return builder.ToString();
+        }
+
+        private static string FormatVector3(Vector3 vector)
+        {
+            return string.Concat(
+                "{\"x\":",
+                vector.x.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                ",\"y\":",
+                vector.y.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                ",\"z\":",
+                vector.z.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                "}");
+        }
+
+        private static string EscapeJson(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
         }
     }
 }

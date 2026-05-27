@@ -71,6 +71,10 @@ namespace CorgiCommando.Enemies
                 if (PlaytestMetrics.IsRecording)
                 {
                     PlaytestMetrics.LogStateTransition($"{GetType().Name}:{GetInstanceID()}", oldPhase.ToString(), CurrentPhase.ToString());
+                    PlaytestMetrics.LogPositionSnapshot(
+                        $"boss-phase-{oldPhase}-to-{CurrentPhase}",
+                        transform.position,
+                        PlaytestMetrics.CaptureNamedPositions());
                 }
             }
             else if (CurrentPhase == 2 && ratio <= Phase3Threshold)
@@ -80,6 +84,10 @@ namespace CorgiCommando.Enemies
                 if (PlaytestMetrics.IsRecording)
                 {
                     PlaytestMetrics.LogStateTransition($"{GetType().Name}:{GetInstanceID()}", oldPhase.ToString(), CurrentPhase.ToString());
+                    PlaytestMetrics.LogPositionSnapshot(
+                        $"boss-phase-{oldPhase}-to-{CurrentPhase}",
+                        transform.position,
+                        PlaytestMetrics.CaptureNamedPositions());
                 }
             }
         }
