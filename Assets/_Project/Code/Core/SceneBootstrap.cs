@@ -345,7 +345,18 @@ namespace CorgiCommando.Core
 
             CorgiController playerTwo = playerTwoObject.GetComponent<CorgiController>();
             PlayerInputHandler inputHandler = playerTwoObject.GetComponent<PlayerInputHandler>();
-            if (playerTwo == null || inputHandler == null)
+            if (playerTwo == null)
+            {
+                Destroy(playerTwoObject);
+                return false;
+            }
+
+            if (inputHandler == null)
+            {
+                inputHandler = playerTwoObject.AddComponent<PlayerInputHandler>();
+            }
+
+            if (inputHandler == null)
             {
                 Destroy(playerTwoObject);
                 return false;
