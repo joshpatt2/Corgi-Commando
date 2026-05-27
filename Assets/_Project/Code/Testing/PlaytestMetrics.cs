@@ -21,13 +21,36 @@ namespace CorgiCommando.Testing
         public const float BaseFramerate = 60f;
         private const int InitialCapacity = 1024;
 
-        public static bool IsRecording { get; set; }
+        private static bool _isRecording;
+        private static bool _isLogMessageReceivedSubscribed;
+
+        public static bool IsRecording
+        {
+            get => _isRecording;
+            set
+            {
+                if (_isRecording == value)
+                {
+                    return;
+                }
+
+                _isRecording = value;
+                if (_isRecording)
+                {
+                    SubscribeToLogs();
+                    return;
+                }
+
+                UnsubscribeFromLogs();
+            }
+        }
 
         private static readonly List<HitstopEntry> _hitstops = new List<HitstopEntry>(InitialCapacity);
         private static readonly List<KnockbackEntry> _knockbacks = new List<KnockbackEntry>(InitialCapacity);
         private static readonly List<ScreenShakeEntry> _screenShakes = new List<ScreenShakeEntry>(InitialCapacity);
         private static readonly List<StateTransitionEntry> _stateTransitions = new List<StateTransitionEntry>(InitialCapacity);
         private static readonly List<FrameTimeEntry> _frameTimes = new List<FrameTimeEntry>(InitialCapacity);
+        private static readonly List<ExceptionEntry> _exceptions = new List<ExceptionEntry>(InitialCapacity);
 
         [Serializable]
         public sealed class PlaytestReport
@@ -37,6 +60,7 @@ namespace CorgiCommando.Testing
             public List<ScreenShakeEntry> screenShakes;
             public List<StateTransitionEntry> stateTransitions;
             public List<FrameTimeEntry> frameTimes;
+            public List<ExceptionEntry> exceptions;
         }
 
         [Serializable]
@@ -73,6 +97,15 @@ namespace CorgiCommando.Testing
         public struct FrameTimeEntry
         {
             public float deltaTime;
+        }
+
+        [Serializable]
+        public struct ExceptionEntry
+        {
+            public string condition;
+            public string stackTrace;
+            public string type;
+            public int frame;
         }
 
         public static void LogHitstop(float startTime, float endTime)
@@ -144,13 +177,31 @@ namespace CorgiCommando.Testing
             _frameTimes.Add(new FrameTimeEntry { deltaTime = deltaTime });
         }
 
+        public static void LogException(string condition, string stackTrace, LogType type)
+        {
+            if (!IsRecording)
+            {
+                return;
+            }
+
+            _exceptions.Add(new ExceptionEntry
+            {
+                condition = condition ?? string.Empty,
+                stackTrace = stackTrace ?? string.Empty,
+                type = type.ToString(),
+                frame = Time.frameCount
+            });
+        }
+
         public static void Reset()
         {
+            IsRecording = false;
             _hitstops.Clear();
             _knockbacks.Clear();
             _screenShakes.Clear();
             _stateTransitions.Clear();
             _frameTimes.Clear();
+            _exceptions.Clear();
         }
 
         public static void WriteReport(string path)
@@ -172,11 +223,42 @@ namespace CorgiCommando.Testing
                 knockbacks = new List<KnockbackEntry>(_knockbacks),
                 screenShakes = new List<ScreenShakeEntry>(_screenShakes),
                 stateTransitions = new List<StateTransitionEntry>(_stateTransitions),
-                frameTimes = new List<FrameTimeEntry>(_frameTimes)
+                frameTimes = new List<FrameTimeEntry>(_frameTimes),
+                exceptions = new List<ExceptionEntry>(_exceptions)
             };
 
             string json = JsonUtility.ToJson(report, true);
             File.WriteAllText(path, json);
+        }
+
+        private static void SubscribeToLogs()
+        {
+            if (_isLogMessageReceivedSubscribed)
+            {
+                return;
+            }
+
+            Application.logMessageReceived += OnLogMessageReceived;
+            _isLogMessageReceivedSubscribed = true;
+        }
+
+        private static void UnsubscribeFromLogs()
+        {
+            if (!_isLogMessageReceivedSubscribed)
+            {
+                return;
+            }
+
+            Application.logMessageReceived -= OnLogMessageReceived;
+            _isLogMessageReceivedSubscribed = false;
+        }
+
+        private static void OnLogMessageReceived(string condition, string stackTrace, LogType type)
+        {
+            if (type == LogType.Error || type == LogType.Exception)
+            {
+                LogException(condition, stackTrace, type);
+            }
         }
     }
 }
