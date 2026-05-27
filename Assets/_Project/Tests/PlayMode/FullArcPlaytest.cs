@@ -36,7 +36,7 @@ namespace CorgiCommando.Tests.PlayMode
 
             float originalTimeScale = Time.timeScale;
             GameObject botRoot = null;
-            Action<string, string, LogType> logHandler = (condition, stackTrace, type) =>
+            Application.LogCallback logHandler = (condition, stackTrace, type) =>
             {
                 if (type == LogType.Exception)
                 {
@@ -133,7 +133,7 @@ namespace CorgiCommando.Tests.PlayMode
                 Application.logMessageReceived -= logHandler;
 
                 PlaytestMetrics.WriteReport(reportPath);
-                TestContext.AddTestAttachment(reportPath, "Full arc playtest metrics");
+                TestContext.Out.WriteLine($"Full arc playtest metrics report: {reportPath}");
 
                 PlaytestMetrics.IsRecording = false;
                 PlaytestMetrics.Reset();
